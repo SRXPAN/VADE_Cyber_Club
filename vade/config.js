@@ -51,7 +51,9 @@ window.VADE_CONFIG = {
     logo: "assets/logo.svg",                       // можна замінити на свій файл, напр. "assets/logo.png"
     timeZone: "Europe/Warsaw",                     // часовий пояс клубу (для статусу «Otwarte / Zamknięte»)
     currency: { pl: "zł", en: "zł", uk: "зл", ru: "зл" },
-    privacyUrl: ""                                 // посилання на політику конфіденційності (для ЄС бажано, якщо є трекери)
+    currencyCode: "PLN",                           // код валюти для Google (структуровані дані)
+    priceRange: "",                                // діапазон цін для Google, напр. "15–40 zł". Порожньо — рахується з цін у zones (якщо вони є)
+    privacyUrl: ""                               // посилання на політику конфіденційності (для ЄС бажано, якщо є трекери)
   },
 
   // Контакти з Google Maps: https://maps.app.goo.gl/o9F7oyFsjJJKZTmV9
@@ -67,12 +69,29 @@ window.VADE_CONFIG = {
   },
 
   // Головна кнопка. Онлайн-бронювання клуб поки не має, тому кнопка дзвонить у клуб.
-  // ЗАМІНИТИ, коли з'явиться система бронювання (Senet, Langame, Gizmo тощо): вставте її посилання в url
-  // і змініть subtitle, напр. { pl: "Online w minutę, bez dzwonienia", ... }.
+  // ЗАМІНИТИ, коли з'явиться бронювання в SENET: вставте посилання в url (UTM-мітки з біо додадуться до нього самі)
+  // і змініть subtitle, напр. { pl: "Online w minutę, bez dzwonienia", en: "Online in a minute, no calls", ... }.
   booking: {
     url: "tel:+48515588475",
     title:    { pl: "Zarezerwuj PC",    en: "Book a PC",        uk: "Забронювати ПК",    ru: "Забронировать ПК" },
     subtitle: { pl: "Zadzwoń: {phone}", en: "Call us: {phone}", uk: "Дзвоніть: {phone}", ru: "Звоните: {phone}" }
+  },
+
+  // Червона кнопка «наживо» над посиланнями. Показується ЛИШЕ коли active: true і є url.
+  // Увімкніть на час стріму турніру, після стріму — поверніть false.
+  liveStream: {
+    active: false,
+    url: "",                                       // ЗАМІНИТИ: посилання на Twitch / YouTube / Kick
+    text:     { pl: "Transmisja na żywo", en: "Live stream", uk: "Пряма трансляція", ru: "Прямая трансляция" },
+    subtitle: { pl: "Oglądaj teraz",      en: "Watch now",   uk: "Дивитися зараз",   ru: "Смотреть сейчас" }
+  },
+
+  // Бейдж «🟢 12 вільних ПК» у шапці. Дані бере функція Cloudflare Pages functions/api/status.js з API SENET.
+  // Поки функцію не налаштовано (або сайт відкрито не з Cloudflare), бейдж просто не показується.
+  availability: {
+    enabled: true,
+    endpoint: "/api/status",
+    refreshSeconds: 60                             // як часто оновлювати, поки сторінка відкрита
   },
 
   // Іконки соцмереж під логотипом.
@@ -129,7 +148,8 @@ window.VADE_CONFIG = {
     }
   ],
 
-  // Галерея. Покладіть фото в assets/photos/ і вкажіть src, напр. "assets/photos/hall.jpg".
+  // Галерея. Покладіть фото у форматі WebP в assets/photos/ і вкажіть src, напр. "assets/photos/hall.webp"
+  // (рекомендовано 1200×900, до ~150 КБ). Фото вантажаться ліниво — лише коли до них догортають.
   // Поки src порожній — показується фірмова заглушка з іконкою (icon).
   // ЗАМІНИТИ: фото клубу (3 фото вже є на картці Google Maps).
   gallery: [
@@ -213,6 +233,7 @@ window.VADE_CONFIG = {
     tiktokPixel: "",      // TikTok Pixel, вигляд: "CXXXXXXXXXXXXXXXXXXX"
     clarity: "",          // Microsoft Clarity (теплові карти й записи сесій), вигляд: "abcdefghij"
     consentRequired: true, // банер cookies. Для ЄС/Польщі обов'язковий, вимикати лише свідомо
+    utmPassthrough: true, // UTM-мітки з адреси сторінки (?utm_source=instagram…) додаються до зовнішніх посилань (бронювання тощо)
     debug: false          // true — кожна подія і кожен пропущений переклад друкуються в консолі браузера (F12)
   },
 
@@ -286,6 +307,22 @@ window.VADE_CONFIG = {
       prev:     { pl: "Poprzednie zdjęcie", en: "Previous photo", uk: "Попереднє фото", ru: "Предыдущее фото" },
       next:     { pl: "Następne zdjęcie",   en: "Next photo",     uk: "Наступне фото",  ru: "Следующее фото" },
       photo:    { pl: "Zdjęcie {n}",        en: "Photo {n}",      uk: "Фото {n}",       ru: "Фото {n}" }
+    },
+
+    live: {
+      badge: { pl: "Na żywo", en: "Live", uk: "Наживо", ru: "В эфире" }
+    },
+
+    // Бейдж вільних ПК. Форми множини: one — 1, few — 2–4, many — 5+ (для польської, української й російської)
+    availability: {
+      free: {
+        pl: { one: "{n} wolny PC",       few: "{n} wolne PC",       many: "{n} wolnych PC",     other: "{n} wolnego PC" },
+        en: { one: "{n} PC available",   other: "{n} PCs available" },
+        uk: { one: "{n} вільний ПК",     few: "{n} вільні ПК",      many: "{n} вільних ПК",     other: "{n} вільного ПК" },
+        ru: { one: "{n} свободный ПК",   few: "{n} свободных ПК",   many: "{n} свободных ПК",   other: "{n} свободного ПК" }
+      },
+      none:  { pl: "Wszystkie PC zajęte", en: "All PCs are busy", uk: "Усі ПК зайняті", ru: "Все ПК заняты" },
+      label: { pl: "Dostępność komputerów teraz", en: "PC availability right now", uk: "Наявність ПК зараз", ru: "Наличие ПК сейчас" }
     },
 
     zones: {

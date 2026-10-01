@@ -1,5 +1,6 @@
 /* VADE — логіка сторінки: рендер з config.js, чотири мови (PL/EN/UA/RU), графік роботи, галерея,
-   «Поділитися», банер cookies та аналітика. Контент, переклади та ID трекерів змінюються в config.js. */
+   «Поділитися», банер cookies, аналітика з UTM-мітками, кнопка трансляції, вільні ПК з SENET і PWA.
+   Контент, переклади та ID трекерів змінюються в config.js. */
 (() => {
   "use strict";
 
@@ -144,6 +145,59 @@
     "https://www.google.com/maps/dir/?api=1&destination=" +
     encodeURIComponent(mapsQuery) +
     (contacts.mapsPlaceId ? "&destination_place_id=" + encodeURIComponent(contacts.mapsPlaceId) : "");
+
+  /* ================= UTM-мітки ================= */
+
+  // Мітки з адреси сторінки (?utm_source=instagram&utm_medium=bio) переносимо на зовнішні посилання
+  // (бронювання SENET тощо), щоб система бронювання бачила, звідки прийшов клієнт.
+  // Запам'ятовуємо їх на сесію: після перезавантаження без міток атрибуція не губиться.
+  const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "utm_id"];
+  const UTM_KEY = "vade_utm";
+
+  const utm = (() => {
+    if (T.utmPassthrough === false) return {};
+    const params = new URLSearchParams(location.search);
+    const found = {};
+    UTM_KEYS.forEach((key) => {
+      const value = params.get(key);
+      if (value) found[key] = value.slice(0, 200);
+    });
+    try {
+      if (Object.keys(found).length) sessionStorage.setItem(UTM_KEY, JSON.stringify(found));
+      else return JSON.parse(sessionStorage.getItem(UTM_KEY)) || {};
+    } catch {
+      /* сховище заблоковане — працюємо лише з поточною адресою */
+    }
+    return found;
+  })();
+  const hasUtm = Object.keys(utm).length > 0;
+
+  // Мітки, які вже є в посиланні, не перезаписуємо
+  function withUtm(url) {
+    if (!hasUtm || !isWeb(url)) return url;
+    try {
+      const target = new URL(url);
+      UTM_KEYS.forEach((key) => {
+        if (utm[key] && !target.searchParams.has(key)) target.searchParams.set(key, utm[key]);
+      });
+      return target.href;
+    } catch {
+      return url;
+    }
+  }
+
+  // Після кожного рендеру: усі зовнішні http(s)-посилання, крім позначених data-no-utm
+  // (кнопки «Поділитися» та Google Maps — там мітки не потрібні)
+  function applyUtm(root = document) {
+    if (!hasUtm) return;
+    $$("a[href]", root).forEach((a) => {
+      if (a.closest("[data-no-utm]")) return;
+      const href = a.getAttribute("href");
+      if (!isWeb(href)) return;
+      const next = withUtm(href);
+      if (next !== href) a.setAttribute("href", next);
+    });
+  }
 
   const NETWORKS = {
     instagram: ["Instagram", "#E4405F"],
@@ -341,9 +395,10 @@
     qr_download: "qr_download",
     gallery: "gallery_interact",
     language: "language_switch",
+    live: "live_click",
   };
   const META_EVENTS = { booking: "Schedule", phone: "Contact", route: "FindLocation", map: "FindLocation" };
-  const TIKTOK_EVENTS = { booking: "ClickButton", phone: "Contact", social: "ClickButton", link: "ClickButton", route: "ClickButton" };
+  const TIKTOK_EVENTS = { booking: "ClickButton", phone: "Contact", social: "ClickButton", link: "ClickButton", route: "ClickButton", live: "ClickButton" };
 
   function track(type, info = {}) {
     const name = EVENT_NAMES[type] || type;
@@ -471,10 +526,13 @@
     const tagline = t(site.tagline);
     return `
       <div class="rise">
-        <div class="hero__logo"><img src="${esc(site.logo || "assets/logo.svg")}" alt="${esc(ui("hero.logoAlt"))}" width="96" height="96"></div>
+        <div class="hero__logo"><img src="${esc(site.logo || "assets/logo.svg")}" alt="${esc(ui("hero.logoAlt"))}" width="96" height="96" loading="eager" fetchpriority="high" decoding="async"></div>
         <h1 class="hero__name">${esc(site.name)}</h1>
         ${tagline ? `<p class="hero__tagline">${esc(tagline)}</p>` : ""}
-        <p class="status" data-status hidden><span class="status__dot"></span><span data-status-text></span></p>
+        <div class="hero__badges">
+          <p class="status" data-status hidden><span class="status__dot"></span><span data-status-text></span></p>
+          <p class="status status--avail" data-avail hidden></p>
+        </div>
         ${
           socials.length
             ? `<ul class="socials" aria-label="${esc(ui("hero.socials"))}">${socials
@@ -486,6 +544,22 @@
             : ""
         }
       </div>`;
+  }
+
+  // Червона кнопка трансляції — лише коли liveStream.active === true і вказано посилання
+  function liveHtml() {
+    const live = C.liveStream || {};
+    if (live.active !== true || !live.url) return "";
+    const subtitle = t(live.subtitle);
+    return `
+      <a class="live rise" href="${esc(live.url)}"${targetAttrs(live.url)} data-track="live" data-id="live_stream" data-label="${esc(tDef(live.text))}">
+        <span class="live__badge"><span class="live__dot" aria-hidden="true"></span>${esc(ui("live.badge"))}</span>
+        <span class="live__text">
+          <span class="live__title">${esc(t(live.text))}</span>
+          ${subtitle ? `<span class="live__sub">${esc(subtitle)}</span>` : ""}
+        </span>
+        ${icon("arrow-up-right", "live__arrow")}
+      </a>`;
   }
 
   function ctaHtml() {
@@ -642,7 +716,7 @@
         }
         </div>
         <div class="card__actions">
-          <a class="btn btn--primary" href="${esc(routeUrl)}" target="_blank" rel="noopener" data-track="route" data-id="route" data-label="${esc(uiDef("location.route"))}">${icon("navigation")}${esc(ui("location.route"))}</a>
+          <a class="btn btn--primary" href="${esc(routeUrl)}" target="_blank" rel="noopener" data-no-utm data-track="route" data-id="route" data-label="${esc(uiDef("location.route"))}">${icon("navigation")}${esc(ui("location.route"))}</a>
           ${phoneHref ? `<a class="btn btn--ghost" href="${esc(phoneHref)}" data-track="phone" data-id="phone_card" data-label="${esc(uiDef("location.call"))}">${icon("phone")}${esc(ui("location.call"))}</a>` : ""}
         </div>`
       : "";
@@ -661,9 +735,10 @@
 
   function render() {
     $("#hero").innerHTML = heroHtml();
-    $("#main").innerHTML = ctaHtml() + linksHtml() + galleryHtml() + zonesHtml() + locationHtml();
+    $("#main").innerHTML = liveHtml() + ctaHtml() + linksHtml() + galleryHtml() + zonesHtml() + locationHtml();
     $("#footer").innerHTML = footerHtml();
     $$(".rise").forEach((el, i) => el.style.setProperty("--i", i));
+    applyUtm();
 
     // Якщо логотип не завантажився — підставляємо стандартний, щоб не було «битої» картинки
     $(".hero__logo img").addEventListener(
@@ -857,7 +932,7 @@
       : "";
 
     return `
-      <div class="sheet__inner">
+      <div class="sheet__inner" data-no-utm>
         <div class="sheet__grab" aria-hidden="true"></div>
         <div class="sheet__head">
           <h2 class="sheet__title" id="shareTitle">${esc(ui("share.title"))}</h2>
@@ -1023,6 +1098,98 @@
     if (event.target.closest("#cookieSettings")) renderConsent(true);
   }
 
+  /* ================= Вільні ПК (SENET через /api/status) ================= */
+
+  // Відповідь функції functions/api/status.js: { available: 12, total: 20, updatedAt: "…" }.
+  // Якщо функції немає (локальний перегляд, інший хостинг) або SENET не налаштовано — бейдж не показується.
+  const AV = C.availability || {};
+  let availability = null;
+  let availabilityOff = !AV.enabled || !AV.endpoint || location.protocol === "file:";
+  let availabilityTimer = 0;
+
+  // Множина за правилами мови: 1 wolny / 2 wolne / 5 wolnych PC
+  function pluralText(path, n) {
+    const forms = tr(lookup(path));
+    if (!isDict(forms)) return fill(forms, { n: formatNumber(n) });
+    let category = "other";
+    try {
+      category = new Intl.PluralRules(langInfo().locale || lang).select(n);
+    } catch {
+      /* старий браузер — лишається "other" */
+    }
+    return fill(forms[category] ?? forms.other ?? forms.many ?? Object.values(forms)[0], { n: formatNumber(n) });
+  }
+
+  function renderAvailability() {
+    const el = $("[data-avail]");
+    if (!el) return;
+    // Коли клуб зачинено, SENET бачить усі ПК «вільними» — такий бейдж лише заплутає
+    const closed = hasSchedule && !getStatus().open;
+    if (!availability || closed) {
+      el.hidden = true;
+      return;
+    }
+    const n = availability.available;
+    el.dataset.state = n > 0 ? "open" : "closed";
+    el.title = ui("availability.label");
+    el.innerHTML = `<span class="status__dot"></span><span><b>${esc(n > 0 ? pluralText("availability.free", n) : ui("availability.none"))}</b></span>`;
+    el.hidden = false;
+  }
+
+  async function loadAvailability() {
+    if (availabilityOff) return;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    try {
+      const res = await fetch(AV.endpoint, { headers: { Accept: "application/json" }, cache: "no-store", signal: controller.signal });
+      // 404 — функції немає на цьому хостингу; 503 — SENET ще не налаштовано. Більше не питаємо.
+      if (res.status === 404 || res.status === 503) {
+        availabilityOff = true;
+        clearInterval(availabilityTimer);
+        availability = null;
+      } else if (!res.ok) {
+        availability = null;
+      } else {
+        const data = await res.json();
+        const available = Number(data.available);
+        availability = Number.isFinite(available) && available >= 0 ? { available: Math.floor(available), total: Number(data.total) || null } : null;
+      }
+    } catch (error) {
+      availability = null;
+      if (T.debug) warnOnce("не вдалося отримати вільні ПК: " + error);
+    } finally {
+      clearTimeout(timeout);
+    }
+    renderAvailability();
+  }
+
+  function initAvailability() {
+    if (availabilityOff) return;
+    loadAvailability();
+    const every = Math.max(15, Number(AV.refreshSeconds) || 60) * 1000;
+    availabilityTimer = setInterval(() => {
+      if (!document.hidden) loadAvailability();
+    }, every);
+    // Повернулись на вкладку — одразу свіжі дані
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) loadAvailability();
+    });
+  }
+
+  /* ================= PWA ================= */
+
+  // Service Worker: сторінка відкривається без інтернету і швидше при повторних візитах.
+  // Працює лише через https (або localhost); з file:// просто пропускаємо.
+  function registerServiceWorker() {
+    if (!("serviceWorker" in navigator) || !window.isSecureContext) return;
+    const register = () =>
+      navigator.serviceWorker.register("sw.js").catch((error) => {
+        if (T.debug) warnOnce("Service Worker не зареєструвався: " + error);
+      });
+    if (document.readyState === "complete") register();
+    else window.addEventListener("load", register, { once: true });
+  }
+
   /* ================= Структуровані дані для Google ================= */
 
   let jsonLd = null;
@@ -1037,14 +1204,43 @@
     };
     const postal = contacts.postal || {};
     const geo = contacts.geo || {};
-    const data = {
-      "@context": "https://schema.org",
+    const clubId = pageUrl + "#club";
+    const siteId = pageUrl + "#website";
+    // BCP 47 коди всіх мов сайту (pl-PL, en-GB, uk-UA, ru-RU)
+    const languages = LANGS.map((l) => l.locale || l.code);
+
+    // Діапазон цін: вручну з site.priceRange або з цін зон, якщо вони вже вписані
+    const prices = (C.zones || []).filter(hasPrice).map((z) => Number(z.price)).filter(Number.isFinite);
+    const currency = tDef(site.currency) || site.currencyCode || "";
+    const priceRange =
+      tDef(site.priceRange) ||
+      (prices.length
+        ? `${Math.min(...prices) === Math.max(...prices) ? Math.min(...prices) : `${Math.min(...prices)}–${Math.max(...prices)}`} ${currency}`.trim()
+        : undefined);
+
+    // Онлайн-бронювання (SENET) — як дія «Забронювати» для Google; дзвінок сюди не підходить
+    const booking = C.booking || {};
+    const reserve = isWeb(booking.url)
+      ? {
+          "@type": "ReserveAction",
+          name: tDef(booking.title) || undefined,
+          target: { "@type": "EntryPoint", urlTemplate: booking.url, inLanguage: languages, actionPlatform: ["https://schema.org/DesktopWebPlatform", "https://schema.org/MobileWebPlatform"] },
+        }
+      : undefined;
+
+    const club = {
       "@type": "EntertainmentBusiness",
+      "@id": clubId,
       name: site.fullName || site.name,
+      alternateName: site.fullName && site.name !== site.fullName ? site.name : undefined,
       description: t(site.description) || undefined,
       url: pageUrl,
-      image: abs(site.logo || "assets/logo.svg"),
+      logo: abs(site.logo || "assets/logo.svg"),
+      image: [abs("assets/og-image.png"), abs(site.logo || "assets/logo.svg")],
       telephone: contacts.phone || undefined,
+      priceRange,
+      currenciesAccepted: site.currencyCode || undefined,
+      potentialAction: reserve,
       address: contacts.address
         ? {
             "@type": "PostalAddress",
@@ -1069,6 +1265,17 @@
             : null
         )
         .filter(Boolean),
+    };
+
+    const data = {
+      "@context": "https://schema.org",
+      "@graph": [
+        club,
+        // Сайт доступний чотирма мовами
+        { "@type": "WebSite", "@id": siteId, url: pageUrl, name: site.fullName || site.name, inLanguage: languages, publisher: { "@id": clubId } },
+        // Поточна сторінка — мовою, яку бачить відвідувач
+        { "@type": "WebPage", "@id": pageUrl + "#page", url: pageUrl, name: document.title, inLanguage: langInfo().locale || lang, isPartOf: { "@id": siteId }, about: { "@id": clubId } },
+      ],
     };
     if (!jsonLd) {
       jsonLd = document.createElement("script");
@@ -1127,6 +1334,7 @@
 
     render();
     renderStatus();
+    renderAvailability();
     initCarousel();
     renderShare();
     refreshConsent();
@@ -1160,7 +1368,12 @@
   initShare();
   applyLanguage();
   initConsent();
-  setInterval(renderStatus, 60 * 1000);
+  initAvailability();
+  registerServiceWorker();
+  setInterval(() => {
+    renderStatus();
+    renderAvailability(); // о 00:00 клуб зачиняється — бейдж вільних ПК ховається
+  }, 60 * 1000);
 
   document.addEventListener("click", onTrackedClick);
   document.addEventListener("auxclick", onTrackedClick);

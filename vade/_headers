@@ -1,0 +1,14 @@
+# Cloudflare Pages: HTTP-заголовки (сам файл на сайті не публікується)
+
+# Service Worker і config.js завжди перевіряються на сервері — оновлення сайту доходять одразу
+/sw.js
+  Cache-Control: no-cache
+/config.js
+  Cache-Control: no-cache
+
+/manifest.json
+  Content-Type: application/manifest+json; charset=utf-8
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin

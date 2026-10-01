@@ -1,0 +1,6 @@
+# Cloudflare Pages: сайт лежить у папці vade/, функції (/api/status) — у functions/ поруч.
+# Деплой з комп'ютера:  npx wrangler pages deploy
+# Локально з функціями: npx wrangler pages dev   
+name = "vade-cyber-club"
+pages_build_output_dir = "vade"
+compatibility_date = "2026-09-01"
