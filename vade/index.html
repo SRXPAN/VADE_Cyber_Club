@@ -1,30 +1,35 @@
 <!doctype html>
-<html lang="uk">
+<html lang="pl">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 
-  <!-- ЗАМІНИТИ: назва, опис і адреса сайту (vade.example) — так сторінка виглядає в Google і в прев'ю посилань -->
-  <title>VADE — кіберклуб · Бронювання ПК, турніри, бар</title>
-  <meta name="description" content="Кіберклуб VADE: топові ПК, PS5, турніри та бар. Бронюй місце онлайн, дивись ціни, графік і як доїхати.">
+  <!-- Назва й опис для Google та прев'ю посилань — польською, основною мовою сайту.
+       Після вибору іншої мови назва вкладки змінюється сама (тексти — у config.js).
+       ЗАМІНИТИ: vade.example → ваш домен (4 місця: canonical, og:url, og:image, twitter:image) -->
+  <title>VADE Cyber Club — klub gamingowy w Krakowie</title>
+  <meta name="description" content="VADE Cyber Club — gaming, e-sport i rywalizacja w centrum Krakowa. Mocne PC, świetna atmosfera i miejsce stworzone dla graczy. Starowiślna 95, Kraków.">
   <link rel="canonical" href="https://vade.example/">
   <meta name="theme-color" content="#07080d">
   <meta name="color-scheme" content="dark">
 
   <!-- Open Graph: прев'ю в Telegram, Instagram, Facebook, Viber. Адреси мають бути повними (https://...) -->
   <meta property="og:type" content="website">
-  <meta property="og:site_name" content="VADE">
-  <meta property="og:locale" content="uk_UA">
-  <meta property="og:title" content="VADE — кіберклуб">
-  <meta property="og:description" content="Топові ПК, PS5, турніри та бар. Бронюй місце онлайн.">
+  <meta property="og:site_name" content="VADE Cyber Club">
+  <meta property="og:locale" content="pl_PL">
+  <meta property="og:locale:alternate" content="en_GB">
+  <meta property="og:locale:alternate" content="uk_UA">
+  <meta property="og:locale:alternate" content="ru_RU">
+  <meta property="og:title" content="VADE Cyber Club — klub gamingowy w Krakowie">
+  <meta property="og:description" content="Gaming, e-sport i rywalizacja w centrum Krakowa. Mocne PC i świetna atmosfera. Starowiślna 95, Kraków.">
   <meta property="og:url" content="https://vade.example/">
   <meta property="og:image" content="https://vade.example/assets/og-image.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="VADE — кіберклуб">
+  <meta property="og:image:alt" content="VADE Cyber Club · Kraków, Starowiślna 95">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="VADE — кіберклуб">
-  <meta name="twitter:description" content="Топові ПК, PS5, турніри та бар. Бронюй місце онлайн.">
+  <meta name="twitter:title" content="VADE Cyber Club — klub gamingowy w Krakowie">
+  <meta name="twitter:description" content="Gaming, e-sport i rywalizacja w centrum Krakowa. Mocne PC i świetna atmosfera. Starowiślna 95, Kraków.">
   <meta name="twitter:image" content="https://vade.example/assets/og-image.png">
 
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
@@ -77,14 +82,21 @@
   <div class="bg" aria-hidden="true"></div>
 
   <div class="page">
-    <header class="hero" id="hero"></header>
+    <header class="hero">
+      <!-- Верхня панель: «Поділитися» та перемикач мов (кнопки мов створює app.js зі списку languages у config.js) -->
+      <div class="topbar">
+        <button class="icon-btn" type="button" id="shareBtn" aria-label="Udostępnij stronę" hidden><svg class="ico" aria-hidden="true"><use href="#i-share-2"></use></svg></button>
+        <div class="lang-switch" id="langSwitch" role="group" aria-label="Język" hidden></div>
+      </div>
+      <div class="hero__body" id="hero"></div>
+    </header>
     <main id="main">
-      <noscript><p class="noscript">Щоб побачити всі посилання, увімкніть JavaScript у браузері.</p></noscript>
+      <noscript><p class="noscript">Włącz JavaScript, aby zobaczyć wszystkie linki. · Enable JavaScript to see all links.</p></noscript>
     </main>
     <footer class="footer" id="footer"></footer>
   </div>
 
-  <div class="consent" id="consent" role="region" aria-label="Налаштування cookies" hidden></div>
+  <div class="consent" id="consent" role="region" aria-label="Ustawienia cookie" hidden></div>
   <dialog class="sheet" id="share" aria-labelledby="shareTitle"></dialog>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 </body>

@@ -109,7 +109,7 @@ button {
   position: relative;
   max-width: 480px;
   margin: 0 auto;
-  padding: 28px 16px calc(32px + env(safe-area-inset-bottom));
+  padding: 16px 16px calc(32px + env(safe-area-inset-bottom));
 }
 
 .rise {
@@ -122,6 +122,11 @@ button {
     opacity: 0;
     transform: translateY(12px);
   }
+}
+
+/* Після зміни мови блоки не «виїжджають» удруге */
+.no-anim .rise {
+  animation: none;
 }
 
 /* ---------- Кнопки ---------- */
@@ -228,13 +233,66 @@ button {
 
 .hero {
   text-align: center;
-  padding-top: 12px;
 }
 
-.hero__share {
-  position: absolute;
-  top: 16px;
-  right: 16px;
+.hero__body {
+  padding-top: 8px;
+}
+
+/* ---------- Верхня панель: «Поділитися» та перемикач мов ---------- */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+}
+
+.lang-switch {
+  display: inline-flex;
+  gap: 2px;
+  margin-left: auto; /* праворуч, навіть якщо кнопки «Поділитися» немає */
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(15, 17, 26, 0.8);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.lang-switch__btn {
+  min-width: 40px;
+  height: 36px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 11px;
+  background: none;
+  color: var(--muted);
+  font: 700 12px/1 var(--font-display);
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.lang-switch__btn:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.lang-switch__btn:active {
+  transform: scale(0.94);
+}
+
+.lang-switch__btn:focus-visible {
+  outline-offset: 1px;
+}
+
+.lang-switch__btn[aria-pressed="true"] {
+  background: var(--accent);
+  box-shadow: 0 6px 18px -8px var(--accent);
+  color: #fff;
+  cursor: default;
 }
 
 .hero__logo {
@@ -461,12 +519,18 @@ button {
     width: 42px;
     height: 42px;
   }
+
+  /* найдовший варіант — «Забронировать ПК» */
+  .cta__title {
+    font-size: 14px;
+  }
 }
 
 /* ---------- Посилання ---------- */
 
 .links {
   display: grid;
+  grid-template-columns: minmax(0, 1fr); /* колонка стискається, і довгий підпис обрізається «…», а не розпирає сторінку */
   gap: 10px;
   margin: 12px 0 0;
   padding: 0;
@@ -929,7 +993,7 @@ button {
 
 .card__actions {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
   gap: 10px;
   padding: 14px;
   border-top: 1px solid var(--border);

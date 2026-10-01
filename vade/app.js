@@ -1,5 +1,5 @@
-/* VADE — логіка сторінки: рендер з config.js, графік роботи, галерея, «Поділитися»,
-   банер cookies та аналітика. Контент і ID трекерів змінюються в config.js. */
+/* VADE — логіка сторінки: рендер з config.js, чотири мови (PL/EN/UA/RU), графік роботи, галерея,
+   «Поділитися», банер cookies та аналітика. Контент, переклади та ID трекерів змінюються в config.js. */
 (() => {
   "use strict";
 
@@ -12,6 +12,7 @@
   const site = C.site || {};
   const contacts = C.contacts || {};
   const T = C.tracking || {};
+  const U = C.ui || {};
 
   /* ================= Утиліти ================= */
 
@@ -41,9 +42,108 @@
     },
   };
 
+  /* ================= Мови ================= */
+
+  const LANG_KEY = "vade_lang";
+  const LANGS = (C.languages?.list || []).filter((l) => l && l.code);
+  if (!LANGS.length) LANGS.push({ code: "pl", label: "PL", name: "Polski", locale: "pl-PL" });
+  const CODES = LANGS.map((l) => l.code);
+  const DEFAULT_LANG = CODES.includes(C.languages?.default) ? C.languages.default : CODES[0];
+  // «UA» — код країни, а не мови. Приймаємо його як синонім «uk», якщо хтось напише ?lang=ua
+  const LANG_ALIASES = { ua: "uk" };
+  // Пошуковим роботам — основна мова, щоб Google індексував польську версію, а не мову свого браузера
+  const IS_BOT = /googlebot|google-inspectiontool|bingbot|yandex|duckduckbot|baiduspider|applebot|petalbot|facebookexternalhit|crawler|spider/i.test(
+    navigator.userAgent
+  );
+
+  function normLang(tag) {
+    if (typeof tag !== "string" || !tag.trim()) return null;
+    const base = tag.trim().toLowerCase().split(/[-_]/)[0];
+    const code = LANG_ALIASES[base] || base;
+    return CODES.includes(code) ? code : null;
+  }
+
+  // Порядок: ?lang= у посиланні → вибір відвідувача (localStorage) → мови браузера → основна мова
+  function detectLanguage() {
+    const fromUrl = normLang(new URLSearchParams(location.search).get("lang"));
+    if (fromUrl) return fromUrl;
+    const saved = normLang(store.get(LANG_KEY));
+    if (saved) return saved;
+    if (!IS_BOT) {
+      const preferred = navigator.languages?.length ? navigator.languages : [navigator.language];
+      for (const tag of preferred) {
+        const code = normLang(tag);
+        if (code) return code;
+      }
+    }
+    return DEFAULT_LANG;
+  }
+
+  let lang = detectLanguage();
+  const langInfo = () => LANGS.find((l) => l.code === lang) || LANGS[0];
+
+  const warned = new Set();
+  const warnOnce = (message) => {
+    if (warned.has(message)) return;
+    warned.add(message);
+    console.warn("[VADE] " + message);
+  };
+
+  const isDict = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
+
+  // Значення з config: звичайний рядок (однаковий для всіх мов) або { pl, en, uk, ru }
+  function tr(value, code = lang) {
+    if (!isDict(value)) return value ?? "";
+    if (value[code] != null) return value[code];
+    if (T.debug) warnOnce(`немає перекладу «${code}» для ${JSON.stringify(value).slice(0, 80)}`);
+    return value[DEFAULT_LANG] ?? Object.values(value).find((v) => v != null) ?? "";
+  }
+
+  // {phone}, {address} і {name} працюють у будь-якому тексті; решту змінних передає код
+  const VARS = { name: site.name || "", phone: contacts.phoneLabel || contacts.phone || "", address: contacts.address || "" };
+  const fill = (text, vars) => String(text ?? "").replace(/\{(\w+)\}/g, (match, key) => String(vars?.[key] ?? VARS[key] ?? match));
+
+  // Текст із config поточною мовою (або мовою code)
+  const t = (value, vars, code) => fill(tr(value, code), vars);
+
+  // Текст інтерфейсу з config.ui за шляхом, напр. ui("status.open")
+  const lookup = (path) => path.split(".").reduce((node, key) => (node == null ? undefined : node[key]), U);
+  function ui(path, vars, code) {
+    const value = lookup(path);
+    if (value == null) {
+      warnOnce(`у config.js немає тексту ui.${path}`);
+      return path;
+    }
+    return fill(tr(value, code), vars);
+  }
+  const uiList = (path) => {
+    const value = tr(lookup(path));
+    return Array.isArray(value) ? value : [];
+  };
+
+  // Підписи для аналітики — завжди основною мовою, щоб одна кнопка не дробилась у звітах на чотири назви
+  const tDef = (value) => t(value, null, DEFAULT_LANG);
+  const uiDef = (path) => ui(path, null, DEFAULT_LANG);
+
+  function formatNumber(value) {
+    if (typeof value !== "number") return String(value);
+    try {
+      return new Intl.NumberFormat(langInfo().locale || lang).format(value);
+    } catch {
+      return String(value);
+    }
+  }
+
+  /* ================= Дані ================= */
+
   const phoneHref = contacts.phone ? "tel:" + contacts.phone.replace(/[^\d+]/g, "") : "";
   const mapsQuery = contacts.mapsQuery || contacts.address || "";
   const pageUrl = site.url || location.href.split(/[?#]/)[0];
+  // З ID місця Google Maps веде маршрут точно до клубу, а не просто до будинку
+  const routeUrl =
+    "https://www.google.com/maps/dir/?api=1&destination=" +
+    encodeURIComponent(mapsQuery) +
+    (contacts.mapsPlaceId ? "&destination_place_id=" + encodeURIComponent(contacts.mapsPlaceId) : "");
 
   const NETWORKS = {
     instagram: ["Instagram", "#E4405F"],
@@ -240,13 +340,14 @@
     copy_address: "copy_address",
     qr_download: "qr_download",
     gallery: "gallery_interact",
+    language: "language_switch",
   };
   const META_EVENTS = { booking: "Schedule", phone: "Contact", route: "FindLocation", map: "FindLocation" };
   const TIKTOK_EVENTS = { booking: "ClickButton", phone: "Contact", social: "ClickButton", link: "ClickButton", route: "ClickButton" };
 
   function track(type, info = {}) {
     const name = EVENT_NAMES[type] || type;
-    const params = {};
+    const params = { site_language: lang };
     if (info.id) params.link_id = info.id;
     if (info.label) params.link_text = info.label;
     if (info.url) params.link_url = info.url;
@@ -278,9 +379,7 @@
   /* ================= Графік роботи ================= */
 
   const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
-  const DAYS_EN = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-  const DAY_LABELS = ["Понеділок", "Вівторок", "Середа", "Четвер", "П'ятниця", "Субота", "Неділя"];
-  const DAY_ON = ["в понеділок", "у вівторок", "в середу", "в четвер", "в п'ятницю", "в суботу", "в неділю"];
+  const DAYS_EN = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]; // для schema.org
 
   const toMin = (hhmm) => {
     const [h, m] = hhmm.trim().split(":").map(Number);
@@ -326,20 +425,23 @@
     const today = schedule[day];
     const yesterday = schedule[(day + 6) % 7];
 
-    if (schedule.every((d) => d && d.allDay)) return { open: true, text: "цілодобово" };
+    if (schedule.every((d) => d && d.allDay)) return { open: true, text: ui("status.always") };
     // нічна зміна, що почалась учора
     if (yesterday && !yesterday.allDay && yesterday.close <= yesterday.open && min < yesterday.close) {
-      return { open: true, text: `до ${fmt(yesterday.close)}` };
+      return { open: true, text: ui("status.until", { time: fmt(yesterday.close) }) };
     }
     if (today) {
-      if (today.allDay) return { open: true, text: "весь день" };
+      if (today.allDay) return { open: true, text: ui("status.allDay") };
       const overnight = today.close <= today.open;
-      if (min >= today.open && (overnight || min < today.close)) return { open: true, text: `до ${fmt(today.close)}` };
-      if (min < today.open) return { open: false, text: `відкриємо о ${fmt(today.open)}` };
+      if (min >= today.open && (overnight || min < today.close)) return { open: true, text: ui("status.until", { time: fmt(today.close) }) };
+      if (min < today.open) return { open: false, text: ui("status.opensAt", { time: fmt(today.open) }) };
     }
     for (let i = 1; i <= 7; i++) {
-      const next = schedule[(day + i) % 7];
-      if (next) return { open: false, text: `відкриємо ${i === 1 ? "завтра" : DAY_ON[(day + i) % 7]} о ${fmt(next.open)}` };
+      const index = (day + i) % 7;
+      const next = schedule[index];
+      if (!next) continue;
+      const time = fmt(next.open);
+      return { open: false, text: i === 1 ? ui("status.opensTomorrow", { time }) : ui("status.opensOn", { day: uiList("daysOn")[index] || DAYS_EN[index], time }) };
     }
     return { open: false, text: "" };
   }
@@ -350,11 +452,11 @@
     $$("[data-status]").forEach((el) => {
       el.hidden = false;
       el.dataset.state = status.open ? "open" : "closed";
-      $("[data-status-text]", el).innerHTML = `<b>${status.open ? "Відчинено" : "Зачинено"}</b>${status.text ? " · " + esc(status.text) : ""}`;
+      $("[data-status-text]", el).innerHTML = `<b>${esc(ui(status.open ? "status.open" : "status.closed"))}</b>${status.text ? " · " + esc(status.text) : ""}`;
     });
   }
 
-  const dayText = (d) => (!d ? "Вихідний" : d.allDay ? "Цілодобово" : `${fmt(d.open)} – ${fmt(d.close)}`);
+  const dayText = (d) => (!d ? ui("hours.dayOff") : d.allDay ? ui("hours.allDay") : `${fmt(d.open)} – ${fmt(d.close)}`);
 
   /* ================= Розмітка ================= */
 
@@ -366,16 +468,16 @@
 
   function heroHtml() {
     const socials = (C.socials || []).filter((s) => s.url && NETWORKS[s.network]);
+    const tagline = t(site.tagline);
     return `
-      <button class="icon-btn hero__share" type="button" id="shareBtn" aria-label="Поділитися сторінкою">${icon("share-2")}</button>
       <div class="rise">
-        <div class="hero__logo"><img src="${esc(site.logo || "assets/logo.svg")}" alt="Логотип ${esc(site.name)}" width="96" height="96"></div>
+        <div class="hero__logo"><img src="${esc(site.logo || "assets/logo.svg")}" alt="${esc(ui("hero.logoAlt"))}" width="96" height="96"></div>
         <h1 class="hero__name">${esc(site.name)}</h1>
-        ${site.tagline ? `<p class="hero__tagline">${esc(site.tagline)}</p>` : ""}
+        ${tagline ? `<p class="hero__tagline">${esc(tagline)}</p>` : ""}
         <p class="status" data-status hidden><span class="status__dot"></span><span data-status-text></span></p>
         ${
           socials.length
-            ? `<ul class="socials" aria-label="Соцмережі">${socials
+            ? `<ul class="socials" aria-label="${esc(ui("hero.socials"))}">${socials
                 .map(({ network, url }) => {
                   const [label, color] = NETWORKS[network];
                   return `<li><a class="social" href="${esc(url)}" target="_blank" rel="noopener" aria-label="${label}" title="${label}" style="--brand:${color}" data-track="social" data-id="${network}" data-label="${label}">${icon(network)}</a></li>`;
@@ -389,12 +491,13 @@
   function ctaHtml() {
     const b = C.booking || {};
     if (!b.url) return "";
+    const subtitle = t(b.subtitle);
     return `
-      <a class="cta rise" href="${esc(b.url)}"${targetAttrs(b.url)} data-track="booking" data-id="booking" data-label="${esc(b.title)}">
+      <a class="cta rise" href="${esc(b.url)}"${targetAttrs(b.url)} data-track="booking" data-id="booking" data-label="${esc(tDef(b.title))}">
         <span class="cta__icon">${icon("calendar-check")}</span>
         <span class="cta__text">
-          <span class="cta__title">${esc(b.title || "Забронювати")}</span>
-          ${b.subtitle ? `<span class="cta__sub">${esc(b.subtitle)}</span>` : ""}
+          <span class="cta__title">${esc(t(b.title))}</span>
+          ${subtitle ? `<span class="cta__sub">${esc(subtitle)}</span>` : ""}
         </span>
         ${icon("arrow-up-right", "cta__arrow")}
       </a>`;
@@ -413,19 +516,20 @@
 
     return `
       <ul class="links rise">${links
-        .map(
-          (link) => `
+        .map((link) => {
+          const subtitle = t(link.subtitle);
+          return `
         <li>
-          <a class="link" href="${esc(link.url)}"${targetAttrs(link.url)} data-track="${esc(link.type || "link")}" data-id="${esc(link.id || link.title)}" data-label="${esc(link.title)}">
+          <a class="link" href="${esc(link.url)}"${targetAttrs(link.url)} data-track="${esc(link.type || "link")}" data-id="${esc(link.id || tDef(link.title))}" data-label="${esc(tDef(link.title))}">
             <span class="link__icon" style="--c:${colorFor(link)}">${icon(link.icon || "link")}</span>
             <span class="link__body">
-              <span class="link__title">${esc(link.title)}</span>
-              ${link.subtitle ? `<span class="link__sub">${esc(link.subtitle)}</span>` : ""}
+              <span class="link__title">${esc(t(link.title))}</span>
+              ${subtitle ? `<span class="link__sub">${esc(subtitle)}</span>` : ""}
             </span>
             ${icon("arrow-up-right", "link__arrow")}
           </a>
-        </li>`
-        )
+        </li>`;
+        })
         .join("")}
       </ul>`;
   }
@@ -438,61 +542,71 @@
     if (!items.length) return "";
     const total = items.length;
     const slides = items
-      .map(
-        (item, i) => `
-        <figure class="slide" role="group" aria-roledescription="слайд" aria-label="${i + 1} з ${total}" data-ph-index="${i}">
+      .map((item, i) => {
+        const caption = t(item.caption);
+        return `
+        <figure class="slide" role="group" aria-roledescription="${esc(ui("gallery.slide"))}" aria-label="${esc(ui("gallery.slideOf", { n: i + 1, total }))}" data-ph-index="${i}">
           ${
             item.src
-              ? `<img src="${esc(item.src)}" alt="${esc(item.caption || site.name)}" width="800" height="600" loading="lazy" decoding="async">`
+              ? `<img src="${esc(item.src)}" alt="${esc(caption || site.name)}" width="800" height="600" loading="lazy" decoding="async">`
               : placeholderHtml(item, i)
           }
-          ${item.caption ? `<figcaption>${esc(item.caption)}</figcaption>` : ""}
-        </figure>`
-      )
+          ${caption ? `<figcaption>${esc(caption)}</figcaption>` : ""}
+        </figure>`;
+      })
       .join("");
     const nav =
       total > 1
         ? `
         <div class="carousel__nav">
-          <button class="icon-btn icon-btn--sm carousel__arrow" type="button" data-dir="-1" aria-label="Попереднє фото">${icon("chevron-left")}</button>
-          <div class="dots">${items.map((_, i) => `<button class="dot" type="button" aria-label="Фото ${i + 1}" aria-current="${i === 0}"></button>`).join("")}</div>
-          <button class="icon-btn icon-btn--sm carousel__arrow" type="button" data-dir="1" aria-label="Наступне фото">${icon("chevron-right")}</button>
+          <button class="icon-btn icon-btn--sm carousel__arrow" type="button" data-dir="-1" aria-label="${esc(ui("gallery.prev"))}">${icon("chevron-left")}</button>
+          <div class="dots">${items
+            .map((_, i) => `<button class="dot" type="button" aria-label="${esc(ui("gallery.photo", { n: i + 1 }))}" aria-current="${i === slideIndex}"></button>`)
+            .join("")}</div>
+          <button class="icon-btn icon-btn--sm carousel__arrow" type="button" data-dir="1" aria-label="${esc(ui("gallery.next"))}">${icon("chevron-right")}</button>
         </div>`
         : "";
     return section(
       "gallery",
-      "Галерея",
-      `<div class="carousel" role="region" aria-roledescription="карусель" aria-label="Фото клубу">
+      ui("gallery.title"),
+      `<div class="carousel" role="region" aria-roledescription="${esc(ui("gallery.carousel"))}" aria-label="${esc(ui("gallery.label"))}">
         <div class="carousel__rail" tabindex="0">${slides}</div>
         ${nav}
       </div>`
     );
   }
 
+  // Зона без ціни не показується; поки цін немає зовсім — секція прихована
+  const hasPrice = (zone) => Boolean(zone) && zone.price !== "" && zone.price != null;
+
   function zonesHtml() {
-    const zones = C.zones || [];
+    const zones = (C.zones || []).filter(hasPrice);
     if (!zones.length) return "";
-    const currency = esc(site.currency || "");
+    const currency = t(site.currency);
     const cards = zones
-      .map(
-        (z) => `
+      .map((z) => {
+        const badge = t(z.badge);
+        const specs = (tr(z.specs) || []).map((s) => t(s)).filter(Boolean);
+        const unit = t(z.unit) || ui("zones.unit");
+        return `
         <li class="zone${z.featured ? " zone--featured" : ""}">
           <div class="zone__top">
-            <h3 class="zone__name">${esc(z.name)}</h3>
-            ${z.badge ? `<span class="zone__badge">${esc(z.badge)}</span>` : ""}
+            <h3 class="zone__name">${esc(t(z.name))}</h3>
+            ${badge ? `<span class="zone__badge">${esc(badge)}</span>` : ""}
           </div>
-          <p class="zone__price">${esc(z.price)} <small>${currency}/${esc(z.unit || "год")}</small></p>
-          ${z.specs?.length ? `<ul class="zone__specs">${z.specs.map((s) => `<li>${esc(s)}</li>`).join("")}</ul>` : ""}
-        </li>`
-      )
+          <p class="zone__price">${esc(formatNumber(z.price))} <small>${esc(currency ? `${currency}/${unit}` : unit)}</small></p>
+          ${specs.length ? `<ul class="zone__specs">${specs.map((s) => `<li>${esc(s)}</li>`).join("")}</ul>` : ""}
+        </li>`;
+      })
       .join("");
-    return section("zones", "Зони та ціни", `<ul class="zones">${cards}</ul>${C.zonesNote ? `<p class="section__note">${esc(C.zonesNote)}</p>` : ""}`);
+    const note = t(C.zonesNote);
+    return section("zones", ui("zones.title"), `<ul class="zones">${cards}</ul>${note ? `<p class="section__note">${esc(note)}</p>` : ""}`);
   }
 
   function locationHtml() {
     if (!hasSchedule && !contacts.address) return "";
     const today = clubNow().day;
-    const routeUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(mapsQuery)}`;
+    const days = uiList("days");
 
     const hours = hasSchedule
       ? `
@@ -501,51 +615,51 @@
           .map(
             (d, i) => `
           <li${i === today ? ' class="is-today"' : ""}>
-            <span>${DAY_LABELS[i]}${i === today ? '<span class="hours__tag">сьогодні</span>' : ""}</span>
-            <span class="hours__time">${dayText(d)}</span>
+            <span>${esc(days[i] || DAYS_EN[i])}${i === today ? `<span class="hours__tag">${esc(ui("hours.today"))}</span>` : ""}</span>
+            <span class="hours__time">${esc(dayText(d))}</span>
           </li>`
           )
           .join("")}
         </ul>`
       : "";
 
+    const copyLabel = ui("location.copyAddress");
     const place = contacts.address
       ? `
         <div class="address">
           ${icon("map-pin")}
           <span class="address__text">${esc(contacts.address)}</span>
-          <button class="icon-btn icon-btn--sm" type="button" data-copy="${esc(contacts.address)}" data-copy-msg="Адресу скопійовано" data-track="copy_address" data-id="copy_address" data-label="Скопіювати адресу" aria-label="Скопіювати адресу">${icon("copy")}</button>
+          <button class="icon-btn icon-btn--sm" type="button" data-copy="${esc(contacts.address)}" data-copy-msg="${esc(ui("location.addressCopied"))}" data-track="copy_address" data-id="copy_address" data-label="${esc(uiDef("location.copyAddress"))}" aria-label="${esc(copyLabel)}" title="${esc(copyLabel)}">${icon("copy")}</button>
         </div>
-        <div class="map" id="map">
+        <div class="map" id="map">${
+          mapLoaded
+            ? mapFrameHtml()
+            : `
           <button class="map__facade" type="button" id="mapLoad">
             <span class="map__pin">${icon("map-pin")}</span>
-            <span class="map__label">Показати на карті</span>
-          </button>
+            <span class="map__label">${esc(ui("location.showMap"))}</span>
+          </button>`
+        }
         </div>
         <div class="card__actions">
-          <a class="btn btn--primary" href="${esc(routeUrl)}" target="_blank" rel="noopener" data-track="route" data-id="route" data-label="Маршрут">${icon("navigation")}Маршрут</a>
-          ${phoneHref ? `<a class="btn btn--ghost" href="${esc(phoneHref)}" data-track="phone" data-id="phone_card" data-label="Подзвонити">${icon("phone")}Подзвонити</a>` : ""}
+          <a class="btn btn--primary" href="${esc(routeUrl)}" target="_blank" rel="noopener" data-track="route" data-id="route" data-label="${esc(uiDef("location.route"))}">${icon("navigation")}${esc(ui("location.route"))}</a>
+          ${phoneHref ? `<a class="btn btn--ghost" href="${esc(phoneHref)}" data-track="phone" data-id="phone_card" data-label="${esc(uiDef("location.call"))}">${icon("phone")}${esc(ui("location.call"))}</a>` : ""}
         </div>`
       : "";
 
-    return section("location", "Графік і адреса", `<div class="card">${hours}${place}</div>`);
+    return section("location", ui("location.title"), `<div class="card">${hours}${place}</div>`);
   }
 
   function footerHtml() {
-    const cookieBtn = needsConsentUi ? `<button class="linklike" type="button" id="cookieSettings">Налаштування cookies</button>` : "";
-    const privacy = site.privacyUrl ? `<a href="${esc(site.privacyUrl)}"${targetAttrs(site.privacyUrl)}>Політика конфіденційності</a>` : "";
+    const privacyUrl = t(site.privacyUrl);
+    const cookieBtn = needsConsentUi ? `<button class="linklike" type="button" id="cookieSettings">${esc(ui("consent.settings"))}</button>` : "";
+    const privacy = privacyUrl ? `<a href="${esc(privacyUrl)}"${targetAttrs(privacyUrl)}>${esc(ui("footer.privacy"))}</a>` : "";
     return `
-      <p>© ${new Date().getFullYear()} ${esc(site.name)}</p>
+      <p>© ${new Date().getFullYear()} ${esc(site.fullName || site.name)}</p>
       ${cookieBtn || privacy ? `<p class="footer__links">${cookieBtn}${privacy}</p>` : ""}`;
   }
 
   function render() {
-    const theme = C.theme || {};
-    const rootStyle = document.documentElement.style;
-    if (theme.accent) rootStyle.setProperty("--accent", theme.accent);
-    if (theme.accentDeep) rootStyle.setProperty("--accent-deep", theme.accentDeep);
-    if (theme.accent2) rootStyle.setProperty("--accent-2", theme.accent2);
-
     $("#hero").innerHTML = heroHtml();
     $("#main").innerHTML = ctaHtml() + linksHtml() + galleryHtml() + zonesHtml() + locationHtml();
     $("#footer").innerHTML = footerHtml();
@@ -563,17 +677,26 @@
 
   /* ================= Галерея ================= */
 
+  // Стан галереї переживає перемальовування: зміна мови не скидає поточне фото й автопрокрутку
+  let slideIndex = 0;
+  let autoplayOff = reduceMotion;
+  let galleryReported = false;
+  let autoplayTimer = 0;
+  let galleryObserver = null;
+
   function initCarousel() {
+    clearInterval(autoplayTimer);
+    galleryObserver?.disconnect();
+    galleryObserver = null;
+
     const root = $(".carousel");
     if (!root) return;
     const rail = $(".carousel__rail", root);
     const slides = Array.from(rail.children);
     const dots = $$(".dot", root);
-    let index = 0;
-    let stopped = reduceMotion || slides.length < 2;
+    if (slideIndex >= slides.length) slideIndex = 0;
     let paused = false;
     let visible = true;
-    let reported = false;
 
     // Фото, яке не завантажилось, замінюємо фірмовою заглушкою
     rail.addEventListener(
@@ -587,10 +710,10 @@
       true
     );
 
-    const go = (i) => {
-      index = (i + slides.length) % slides.length;
-      const slide = slides[index];
-      rail.scrollTo({ left: slide.offsetLeft - (rail.clientWidth - slide.offsetWidth) / 2, behavior: reduceMotion ? "auto" : "smooth" });
+    const go = (i, smooth = true) => {
+      slideIndex = (i + slides.length) % slides.length;
+      const slide = slides[slideIndex];
+      rail.scrollTo({ left: slide.offsetLeft - (rail.clientWidth - slide.offsetWidth) / 2, behavior: smooth && !reduceMotion ? "smooth" : "auto" });
     };
 
     const sync = () => {
@@ -604,16 +727,16 @@
           best = i;
         }
       });
-      index = best;
+      slideIndex = best;
       dots.forEach((dot, i) => dot.setAttribute("aria-current", String(i === best)));
     };
 
     // Після першої дії користувача автопрокрутку вимикаємо, щоб не «смикати» фото з-під пальця
     const onUser = () => {
-      stopped = true;
-      if (!reported) {
-        reported = true;
-        track("gallery", { id: "gallery", label: "Галерея" });
+      autoplayOff = true;
+      if (!galleryReported) {
+        galleryReported = true;
+        track("gallery", { id: "gallery", label: uiDef("gallery.title") });
       }
     };
 
@@ -634,7 +757,7 @@
       const dot = e.target.closest(".dot");
       const arrow = e.target.closest("[data-dir]");
       if (dot) go(dots.indexOf(dot));
-      else if (arrow) go(index + Number(arrow.dataset.dir));
+      else if (arrow) go(slideIndex + Number(arrow.dataset.dir));
       else return;
       onUser();
     });
@@ -644,31 +767,35 @@
     root.addEventListener("focusin", () => (paused = true));
     root.addEventListener("focusout", () => (paused = false));
     if ("IntersectionObserver" in window) {
-      new IntersectionObserver(([entry]) => (visible = entry.isIntersecting), { threshold: 0.4 }).observe(root);
+      galleryObserver = new IntersectionObserver(([entry]) => (visible = entry.isIntersecting), { threshold: 0.4 });
+      galleryObserver.observe(root);
     }
 
-    if (!stopped) {
-      setInterval(() => {
-        if (!stopped && !paused && visible && !document.hidden) go(index + 1);
+    if (slideIndex) go(slideIndex, false);
+
+    if (slides.length > 1 && !autoplayOff) {
+      autoplayTimer = setInterval(() => {
+        if (!autoplayOff && !paused && visible && !document.hidden) go(slideIndex + 1);
       }, 4500);
     }
   }
 
   /* ================= Карта ================= */
 
-  function initMap() {
-    const btn = $("#mapLoad");
-    if (!btn) return;
-    // Карта Google вантажиться лише після натискання: сторінка відкривається швидше і не ставить зайвих cookies
-    btn.addEventListener("click", () => {
-      const iframe = document.createElement("iframe");
-      iframe.src = `https://www.google.com/maps?q=${encodeURIComponent(mapsQuery)}&hl=uk&z=16&output=embed`;
-      iframe.title = `Карта: ${contacts.address}`;
-      iframe.referrerPolicy = "no-referrer-when-downgrade";
-      iframe.allowFullscreen = true;
-      $("#map").replaceChildren(iframe);
-      track("map", { id: "map", label: "Показати на карті" });
-    });
+  // Карта Google вантажиться лише після натискання: сторінка відкривається швидше і не ставить зайвих cookies.
+  // Мова підписів на карті — та сама, що й на сайті.
+  let mapLoaded = false;
+
+  const mapFrameHtml = () => {
+    const src = `https://www.google.com/maps?q=${encodeURIComponent(mapsQuery)}&hl=${encodeURIComponent(lang)}&z=16&output=embed`;
+    return `<iframe src="${esc(src)}" title="${esc(ui("location.mapTitle"))}" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>`;
+  };
+
+  function onMainClick(event) {
+    if (!event.target.closest("#mapLoad")) return;
+    mapLoaded = true;
+    $("#map").innerHTML = mapFrameHtml();
+    track("map", { id: "map", label: uiDef("location.showMap") });
   }
 
   /* ================= Копіювання та сповіщення ================= */
@@ -702,7 +829,7 @@
   function onCopyClick(event) {
     const btn = event.target.closest("[data-copy]");
     if (!btn) return;
-    copyText(btn.dataset.copy, btn.closest("dialog") || document.body).then(() => toast(btn.dataset.copyMsg || "Скопійовано"));
+    copyText(btn.dataset.copy, btn.closest("dialog") || document.body).then(() => toast(btn.dataset.copyMsg || ui("copied")));
   }
 
   /* ================= «Поділитися» ================= */
@@ -719,32 +846,34 @@
 
   function shareHtml() {
     const u = encodeURIComponent(pageUrl);
-    const t = encodeURIComponent([site.name, site.tagline].filter(Boolean).join(" — "));
+    const text = encodeURIComponent([site.name, t(site.tagline)].filter(Boolean).join(" — "));
     const items = SHARE_TARGETS.map(([id, make]) => {
-      const href = make(u, t);
+      const href = make(u, text);
       const [label, color] = NETWORKS[id];
       return `<a class="share-item" href="${esc(href)}"${targetAttrs(href)} style="--c:${color}" data-track="share" data-id="${id}" data-label="${label}"><span class="share-item__icon">${icon(id)}</span>${label}</a>`;
     }).join("");
-    const native = navigator.share ? `<button class="share-item" type="button" id="nativeShare"><span class="share-item__icon">${icon("share-2")}</span>Ще…</button>` : "";
+    const native = navigator.share
+      ? `<button class="share-item" type="button" id="nativeShare"><span class="share-item__icon">${icon("share-2")}</span>${esc(ui("share.more"))}</button>`
+      : "";
 
     return `
       <div class="sheet__inner">
         <div class="sheet__grab" aria-hidden="true"></div>
         <div class="sheet__head">
-          <h2 class="sheet__title" id="shareTitle">Поділитися</h2>
-          <button class="icon-btn icon-btn--sm" type="button" data-close aria-label="Закрити">${icon("close")}</button>
+          <h2 class="sheet__title" id="shareTitle">${esc(ui("share.title"))}</h2>
+          <button class="icon-btn icon-btn--sm" type="button" data-close aria-label="${esc(ui("share.close"))}">${icon("close")}</button>
         </div>
         <div class="share-grid">${items}${native}</div>
         <div class="copy-row">
-          <input type="text" value="${esc(pageUrl)}" readonly aria-label="Посилання на сторінку">
-          <button class="btn btn--primary" type="button" data-copy="${esc(pageUrl)}" data-copy-msg="Посилання скопійовано" data-track="share" data-id="copy" data-label="Копіювати">${icon("copy")}Копіювати</button>
+          <input type="text" value="${esc(pageUrl)}" readonly aria-label="${esc(ui("share.link"))}">
+          <button class="btn btn--primary" type="button" data-copy="${esc(pageUrl)}" data-copy-msg="${esc(ui("share.copied"))}" data-track="share" data-id="copy" data-label="${esc(uiDef("share.copy"))}">${icon("copy")}${esc(ui("share.copy"))}</button>
         </div>
         <div class="qr" id="qr" hidden>
-          <canvas width="1024" height="1024" role="img" aria-label="QR-код сторінки"></canvas>
+          <canvas width="1024" height="1024" role="img" aria-label="${esc(ui("share.qrAlt"))}"></canvas>
           <div class="qr__text">
-            <b>QR-код</b>
-            <p>Для столів, флаєрів і вітрини клубу.</p>
-            <button class="btn btn--ghost btn--sm" type="button" id="qrDownload" data-track="qr_download" data-id="qr_download" data-label="Завантажити QR">${icon("download")}Зберегти PNG</button>
+            <b>${esc(ui("share.qrTitle"))}</b>
+            <p>${esc(ui("share.qrText"))}</p>
+            <button class="btn btn--ghost btn--sm" type="button" id="qrDownload" data-track="qr_download" data-id="qr_download" data-label="${esc(uiDef("share.qrSave"))}">${icon("download")}${esc(ui("share.qrSave"))}</button>
           </div>
         </div>
       </div>`;
@@ -783,67 +912,91 @@
     script.onerror = () => (qrState = "error"); // без інтернету блок QR просто не з'явиться
   }
 
+  function downloadQr() {
+    $("#qr canvas")?.toBlob((blob) => {
+      if (!blob) return;
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `${(site.name || "qr").toLowerCase().replace(/\s+/g, "-")}-qr.png`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }, "image/png");
+  }
+
+  // Вміст вікна перемальовується при зміні мови; QR, якщо вже був, малюємо знову
+  function renderShare() {
+    const dialog = $("#share");
+    if (!dialog) return;
+    dialog.innerHTML = shareHtml();
+    if (qrState === "ready") drawQr();
+  }
+
   function initShare() {
     const dialog = $("#share");
-    dialog.innerHTML = shareHtml();
+    const button = $("#shareBtn");
+    if (!dialog || !button) return;
+    button.hidden = false;
 
-    $("#shareBtn").addEventListener("click", () => {
+    button.addEventListener("click", () => {
       if (typeof dialog.showModal === "function") {
         dialog.showModal();
         ensureQr();
       } else if (navigator.share) {
         navigator.share({ title: document.title, url: pageUrl }).catch(() => {});
       } else {
-        copyText(pageUrl, document.body).then(() => toast("Посилання скопійовано"));
+        copyText(pageUrl, document.body).then(() => toast(ui("share.copied")));
       }
-      track("share_open", { id: "share_open", label: "Поділитися" });
+      track("share_open", { id: "share_open", label: uiDef("share.title") });
     });
 
     dialog.addEventListener("click", (e) => {
-      if (e.target === dialog || e.target.closest("[data-close]")) dialog.close();
-    });
-
-    $("#nativeShare")?.addEventListener("click", () => {
-      navigator
-        .share({ title: document.title, url: pageUrl })
-        .then(() => track("share", { id: "native", label: "Системне меню" }))
-        .catch(() => {});
-    });
-
-    $("#qrDownload").addEventListener("click", () => {
-      $("#qr canvas").toBlob((blob) => {
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = `${(site.name || "qr").toLowerCase().replace(/\s+/g, "-")}-qr.png`;
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-      }, "image/png");
+      if (e.target === dialog || e.target.closest("[data-close]")) {
+        dialog.close();
+      } else if (e.target.closest("#nativeShare")) {
+        navigator
+          .share({ title: document.title, url: pageUrl })
+          .then(() => track("share", { id: "native", label: "native" }))
+          .catch(() => {});
+      } else if (e.target.closest("#qrDownload")) {
+        downloadQr();
+      }
     });
   }
 
   /* ================= Банер cookies ================= */
 
-  function renderConsent(showPrefs) {
+  // draft — ще не збережені перемикачі (щоб зміна мови їх не скидала)
+  function renderConsent(showPrefs, draft = {}) {
     const box = $("#consent");
+    const isOn = (name) => (typeof draft[name] === "boolean" ? draft[name] : granted(name));
     const row = (name, title, tools) =>
       tools.length
-        ? `<label class="switch-row"><span><b>${title}</b><small>${tools.join(", ")}</small></span><input class="switch" type="checkbox" name="${name}"${granted(name) ? " checked" : ""}></label>`
+        ? `<label class="switch-row"><span><b>${esc(title)}</b><small>${esc(tools.join(", "))}</small></span><input class="switch" type="checkbox" name="${name}"${isOn(name) ? " checked" : ""}></label>`
         : "";
 
     box.innerHTML = `
-      <div class="consent__head">${icon("cookie")}<b>Cookies на сайті</b></div>
-      <p class="consent__text">Ми використовуємо cookies, щоб розуміти, що корисно відвідувачам, і показувати рекламу клубу тим, кому вона цікава. Змінити вибір можна будь-коли внизу сторінки.</p>
+      <div class="consent__head">${icon("cookie")}<b>${esc(ui("consent.title"))}</b></div>
+      <p class="consent__text">${esc(ui("consent.text"))}</p>
       <div class="consent__prefs"${showPrefs ? "" : " hidden"}>
-        <label class="switch-row"><span><b>Необхідні</b><small>Потрібні для роботи сайту</small></span><input class="switch" type="checkbox" checked disabled></label>
-        ${row("analytics", "Аналітика", ANALYTICS_TOOLS)}
-        ${row("marketing", "Реклама", MARKETING_TOOLS)}
+        <label class="switch-row"><span><b>${esc(ui("consent.necessary"))}</b><small>${esc(ui("consent.necessaryHint"))}</small></span><input class="switch" type="checkbox" checked disabled></label>
+        ${row("analytics", ui("consent.analytics"), ANALYTICS_TOOLS)}
+        ${row("marketing", ui("consent.marketing"), MARKETING_TOOLS)}
       </div>
       <div class="consent__actions">
-        <button class="btn btn--primary" type="button" data-consent="all">Прийняти все</button>
-        <button class="btn btn--ghost" type="button" data-consent="necessary">Лише необхідні</button>
-        <button class="btn btn--text" type="button" data-consent="${showPrefs ? "save" : "prefs"}">${showPrefs ? "Зберегти вибір" : "Налаштувати"}</button>
+        <button class="btn btn--primary" type="button" data-consent="all">${esc(ui("consent.acceptAll"))}</button>
+        <button class="btn btn--ghost" type="button" data-consent="necessary">${esc(ui("consent.necessaryOnly"))}</button>
+        <button class="btn btn--text" type="button" data-consent="${showPrefs ? "save" : "prefs"}">${esc(ui(showPrefs ? "consent.save" : "consent.customize"))}</button>
       </div>`;
     box.hidden = false;
+  }
+
+  function refreshConsent() {
+    const box = $("#consent");
+    if (!box || box.hidden || !box.firstElementChild) return;
+    const prefs = $(".consent__prefs", box);
+    const draft = {};
+    $$("input[name]", box).forEach((input) => (draft[input.name] = input.checked));
+    renderConsent(Boolean(prefs && !prefs.hidden), draft);
   }
 
   function initConsent() {
@@ -863,11 +1016,16 @@
       }
     });
 
-    $("#cookieSettings")?.addEventListener("click", () => renderConsent(true));
     if (!consent) renderConsent(false);
   }
 
+  function onFooterClick(event) {
+    if (event.target.closest("#cookieSettings")) renderConsent(true);
+  }
+
   /* ================= Структуровані дані для Google ================= */
+
+  let jsonLd = null;
 
   function injectJsonLd() {
     const abs = (path) => {
@@ -877,15 +1035,27 @@
         return path;
       }
     };
+    const postal = contacts.postal || {};
+    const geo = contacts.geo || {};
     const data = {
       "@context": "https://schema.org",
       "@type": "EntertainmentBusiness",
-      name: site.name,
-      description: site.description,
+      name: site.fullName || site.name,
+      description: t(site.description) || undefined,
       url: pageUrl,
       image: abs(site.logo || "assets/logo.svg"),
       telephone: contacts.phone || undefined,
-      address: contacts.address ? { "@type": "PostalAddress", streetAddress: contacts.address } : undefined,
+      address: contacts.address
+        ? {
+            "@type": "PostalAddress",
+            streetAddress: postal.street || contacts.address,
+            postalCode: postal.postalCode || undefined,
+            addressLocality: postal.city || undefined,
+            addressCountry: postal.country || undefined,
+          }
+        : undefined,
+      geo: typeof geo.lat === "number" && typeof geo.lng === "number" ? { "@type": "GeoCoordinates", latitude: geo.lat, longitude: geo.lng } : undefined,
+      hasMap: contacts.mapsUrl || undefined,
       sameAs: (C.socials || []).map((s) => s.url).filter(Boolean),
       openingHoursSpecification: schedule
         .map((d, i) =>
@@ -900,25 +1070,101 @@
         )
         .filter(Boolean),
     };
-    const script = document.createElement("script");
-    script.type = "application/ld+json";
-    script.textContent = JSON.stringify(data);
-    document.head.appendChild(script);
+    if (!jsonLd) {
+      jsonLd = document.createElement("script");
+      jsonLd.type = "application/ld+json";
+      document.head.appendChild(jsonLd);
+    }
+    jsonLd.textContent = JSON.stringify(data);
+  }
+
+  /* ================= Перемикач мов ================= */
+
+  // Кнопки створюються один раз і не перемальовуються, тож фокус клавіатури лишається на місці
+  function initLangSwitch() {
+    const box = $("#langSwitch");
+    if (!box || LANGS.length < 2) return;
+    box.innerHTML = LANGS.map((l) => {
+      const label = l.label || l.code.toUpperCase();
+      const name = l.name || label;
+      return `<button class="lang-switch__btn" type="button" data-lang="${esc(l.code)}" lang="${esc(l.code)}" title="${esc(name)}" aria-label="${esc(`${name} (${label})`)}">${esc(label)}</button>`;
+    }).join("");
+    box.hidden = false;
+    box.addEventListener("click", (e) => {
+      const button = e.target.closest("[data-lang]");
+      if (button) setLanguage(button.dataset.lang);
+    });
+  }
+
+  function syncLangSwitch() {
+    const box = $("#langSwitch");
+    if (!box) return;
+    box.setAttribute("aria-label", ui("language"));
+    $$("[data-lang]", box).forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.lang === lang)));
+  }
+
+  // Якщо мову задано в посиланні (?lang=…), міняємо її і там — інакше після перезавантаження повернеться стара
+  function syncUrlLang() {
+    try {
+      const url = new URL(location.href);
+      if (!url.searchParams.has("lang")) return;
+      url.searchParams.set("lang", lang);
+      history.replaceState(history.state, "", url);
+    } catch {
+      /* file:// або старий браузер — не страшно */
+    }
+  }
+
+  function applyLanguage() {
+    document.documentElement.lang = lang;
+    const title = t(site.title) || [site.name, t(site.tagline)].filter(Boolean).join(" — ");
+    if (title) document.title = title;
+    const description = t(site.description);
+    if (description) $('meta[name="description"]')?.setAttribute("content", description);
+    $("#shareBtn")?.setAttribute("aria-label", ui("share.open"));
+    $("#consent")?.setAttribute("aria-label", ui("consent.settings"));
+    syncLangSwitch();
+
+    render();
+    renderStatus();
+    initCarousel();
+    renderShare();
+    refreshConsent();
+    injectJsonLd();
+  }
+
+  function setLanguage(code) {
+    const next = normLang(code);
+    if (!next || next === lang) return;
+    lang = next;
+    store.set(LANG_KEY, lang);
+    syncUrlLang();
+    document.documentElement.classList.add("no-anim"); // без повторної анімації появи блоків
+    applyLanguage();
+    track("language", { id: lang, label: langInfo().name });
   }
 
   /* ================= Запуск ================= */
 
+  function applyTheme() {
+    const theme = C.theme || {};
+    const rootStyle = document.documentElement.style;
+    if (theme.accent) rootStyle.setProperty("--accent", theme.accent);
+    if (theme.accentDeep) rootStyle.setProperty("--accent-deep", theme.accentDeep);
+    if (theme.accent2) rootStyle.setProperty("--accent-2", theme.accent2);
+  }
+
   initAnalytics();
-  render();
-  renderStatus();
-  setInterval(renderStatus, 60 * 1000);
-  initCarousel();
-  initMap();
+  applyTheme();
+  initLangSwitch();
   initShare();
+  applyLanguage();
   initConsent();
-  injectJsonLd();
+  setInterval(renderStatus, 60 * 1000);
 
   document.addEventListener("click", onTrackedClick);
   document.addEventListener("auxclick", onTrackedClick);
   document.addEventListener("click", onCopyClick);
+  $("#main").addEventListener("click", onMainClick);
+  $("#footer").addEventListener("click", onFooterClick);
 })();
