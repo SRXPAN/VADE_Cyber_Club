@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs>
+    <linearGradient id="vade-g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#A78BFA"/>
+      <stop offset="1" stop-color="#22D3EE"/>
+    </linearGradient>
+    <radialGradient id="vade-bg" cx="0.3" cy="0.15" r="1">
+      <stop offset="0" stop-color="#1E1838"/>
+      <stop offset="1" stop-color="#0B0C14"/>
+    </radialGradient>
+  </defs>
+  <rect width="120" height="120" rx="30" fill="url(#vade-bg)"/>
+  <rect x="1.5" y="1.5" width="117" height="117" rx="28.5" fill="none" stroke="url(#vade-g)" stroke-opacity=".55" stroke-width="3"/>
+  <path d="M27 33h17l16 37 16-37h17L68 89H52z" fill="url(#vade-g)"/>
+</svg>
