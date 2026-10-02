@@ -621,8 +621,10 @@
         return `
         <figure class="slide" role="group" aria-roledescription="${esc(ui("gallery.slide"))}" aria-label="${esc(ui("gallery.slideOf", { n: i + 1, total }))}" data-ph-index="${i}">
           ${
-            item.src
-              ? `<img src="${esc(item.src)}" alt="${esc(caption || site.name)}" width="800" height="600" loading="lazy" decoding="async">`
+            item.src 
+              ? (item.src.toLowerCase().match(/\.(mp4|mov)$/)
+                ? `<video src="${esc(item.src)}" autoplay loop muted playsinline width="800" height="600" style="object-fit: cover; width: 100%; height: 100%;"></video>` 
+                : `<img src="${esc(item.src)}" alt="${esc(item.caption || site.name)}" width="800" height="600" loading="lazy" decoding="async">`)
               : placeholderHtml(item, i)
           }
           ${caption ? `<figcaption>${esc(caption)}</figcaption>` : ""}
