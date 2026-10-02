@@ -99,9 +99,9 @@ window.VADE_CONFIG = {
   socials: [
     { network: "instagram", url: "https://www.instagram.com/vade_krakow/" },
     { network: "telegram",  url: "https://t.me/vade_cyberclub" },      // група «VADE Community» з картки Google Maps
-    { network: "tiktok",    url: "" },                                 // ЗАМІНИТИ, коли з'явиться
-    { network: "discord",   url: "" },                                 // ЗАМІНИТИ, коли з'явиться
-    { network: "youtube",   url: "" }
+    { network: "tiktok",    url: "https://t.me/vade_cyberclub" },      // ЗАМІНИТИ, коли з'явиться
+    { network: "discord",   url: "https://t.me/vade_cyberclub" },      // ЗАМІНИТИ, коли з'явиться
+    { network: "youtube",   url: "https://t.me/vade_cyberclub" }    // ЗАМІНИТИ, коли з'явиться
   ],
 
   // Кнопки-посилання.
@@ -124,25 +124,25 @@ window.VADE_CONFIG = {
     },
     {
       id: "discord", type: "social", icon: "discord",
-      url: "",                                     // ЗАМІНИТИ, коли з'явиться сервер. Поки порожньо — кнопку приховано
+      url: "https://t.me/vade_cyberclub",                                     // ЗАМІНИТИ, коли з'явиться сервер. Поки порожньо — кнопку приховано
       title:    { pl: "Serwer Discord", en: "Discord server", uk: "Discord-сервер", ru: "Discord-сервер" },
       subtitle: { pl: "Znajdź ekipę do gry", en: "Find teammates and parties", uk: "Знайди тімейтів і пати", ru: "Найди тиммейтов и пати" }
     },
     {
       id: "menu", icon: "utensils",
-      url: "",                                     // ЗАМІНИТИ, якщо є меню бару
+      url: "https://vade-restaurant.pl/section:kuchnia-menu",                                     // ЗАМІНИТИ, якщо є меню бару
       title:    { pl: "Menu baru", en: "Bar menu", uk: "Меню бару", ru: "Меню бара" },
       subtitle: { pl: "Napoje, przekąski i jedzenie", en: "Drinks, snacks and food", uk: "Напої, снеки та їжа", ru: "Напитки, снеки и еда" }
     },
     {
       id: "tournaments", icon: "trophy",
-      url: "",                                     // ЗАМІНИТИ, коли буде розклад турнірів
+      url: "https://t.me/vade_cyberclub",                                     // ЗАМІНИТИ, коли буде розклад турнірів
       title:    { pl: "Turnieje", en: "Tournaments", uk: "Турніри", ru: "Турниры" },
       subtitle: { pl: "Harmonogram i zapisy", en: "Schedule and sign-up", uk: "Розклад і реєстрація", ru: "Расписание и регистрация" }
     },
     {
       id: "partners", icon: "handshake",
-      url: "",                                     // url порожній — кнопку приховано
+      url: "https://t.me/vade_cyberclub",                                     // url порожній — кнопку приховано
       title:    { pl: "Współpraca", en: "Partnerships", uk: "Співпраця", ru: "Сотрудничество" },
       subtitle: { pl: "Dla marek i drużyn", en: "For brands and teams", uk: "Для брендів і команд", ru: "Для брендов и команд" }
     }
