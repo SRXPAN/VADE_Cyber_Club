@@ -155,7 +155,7 @@ window.VADE_CONFIG = {
   gallery: [
     { src: "assets/foto/hall.webp", icon: "gamepad-2", caption: { pl: "Sala gier",             en: "Gaming hall",           uk: "Ігрова зала",           ru: "Игровой зал" } },
     { src: "assets/foto/pc.webp", icon: "monitor",   caption: { pl: "Mocne PC",              en: "Powerful PCs",          uk: "Потужні ПК",            ru: "Мощные ПК" } },
-    { src: "assets/foto/tournament.mov", icon: "trophy",    caption: { pl: "E-sport i rywalizacja", en: "Esports & competition", uk: "Кіберспорт і змагання", ru: "Киберспорт и соревнования" } },
+    { src: "assets/foto/tournament.mp4", icon: "trophy",    caption: { pl: "E-sport i rywalizacja", en: "Esports & competition", uk: "Кіберспорт і змагання", ru: "Киберспорт и соревнования" } },
     { src: "assets/foto/location.webp", icon: "map-pin",   caption: { pl: "Centrum Krakowa",       en: "Heart of Kraków",       uk: "Центр Кракова",         ru: "Центр Кракова" } }
   ],
 
