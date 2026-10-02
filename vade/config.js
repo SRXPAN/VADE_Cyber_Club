@@ -167,22 +167,26 @@ window.VADE_CONFIG = {
   zones: [
     {
       name: { pl: "Standard", en: "Standard", uk: "Стандарт", ru: "Стандарт" },
-      price: "",
+      price: 5,
       specs: [
-        "RTX 4060",
-        { pl: "Monitor 165 Hz", en: "165 Hz monitor", uk: "Монітор 165 Гц", ru: "Монитор 165 Гц" },
-        { pl: "Sprzęt HyperX",  en: "HyperX gear",    uk: "Девайси HyperX", ru: "Девайсы HyperX" }
+        "RTX 5070",
+        { pl: "Monitor 280 Hz", en: "280 Hz monitor", uk: "Монітор 280 Гц", ru: "Монитор 280 Гц" },
+        { pl: "Słuchawki przewodowe z mikrofonem HyperX Cloud III", en: "HyperX Cloud III wired headset with mic", uk: "Дротові навушники з мікрофоном HyperX Cloud III", ru: "Проводные наушники с микрофоном HyperX Cloud III" },
+        { pl: "Mysz HyperX Pulsefire Haste 2", en: "HyperX Pulsefire Haste 2 mouse", uk: "Миша HyperX Pulsefire Haste 2", ru: "Мышь HyperX Pulsefire Haste 2" },
+        { pl: "Klawiatura HyperX Alloy Origins Core PBT (HX Blue)", en: "HyperX Alloy Origins Core PBT keyboard (HX Blue)", uk: "Клавіатура HyperX Alloy Origins Core PBT (HX Blue)", ru: "Клавиатура HyperX Alloy Origins Core PBT (HX Blue)" }
       ]
     },
     {
-      name: { pl: "VIP", en: "VIP", uk: "VIP", ru: "VIP" },
-      price: "",
+      name: { pl: "Streamer", en: "Streamer", uk: "Стрімерська", ru: "Стримерская" },
+      price: 10,
       featured: true,
       badge: { pl: "Hit", en: "Top pick", uk: "Хіт", ru: "Хит" },
       specs: [
-        "RTX 4070 Super",
-        { pl: "Monitor 240 Hz", en: "240 Hz monitor", uk: "Монітор 240 Гц", ru: "Монитор 240 Гц" },
-        { pl: "Osobny pokój",   en: "Private room",   uk: "Окрема кімната", ru: "Отдельная комната" }
+        "RTX 5070",
+        { pl: "Monitor 280 Hz", en: "280 Hz monitor", uk: "Монітор 280 Гц", ru: "Монитор 280 Гц" },
+        { pl: "Słuchawki bezprzewodowe z mikrofonem HyperX Cloud III Wireless", en: "HyperX Cloud III Wireless headset with mic", uk: "Бездротові навушники з мікрофоном HyperX Cloud III Wireless", ru: "Беспроводные наушники с микрофоном HyperX Cloud III Wireless" },
+        { pl: "Mysz Logitech G Pro X Superlight 2", en: "Logitech G Pro X Superlight 2 mouse", uk: "Миша Logitech G Pro X Superlight 2", ru: "Мышь Logitech G Pro X Superlight 2" },
+        { pl: "Klawiatura Logitech G412 TKL", en: "Logitech G412 TKL keyboard", uk: "Клавіатура Logitech G412 TKL", ru: "Клавиатура Logitech G412 TKL" }
       ]
     },
     {
