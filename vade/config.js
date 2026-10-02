@@ -89,7 +89,7 @@ window.VADE_CONFIG = {
   // Бейдж «🟢 12 вільних ПК» у шапці. Дані бере функція Cloudflare Pages functions/api/status.js з API SENET.
   // Поки функцію не налаштовано (або сайт відкрито не з Cloudflare), бейдж просто не показується.
   availability: {
-    enabled: true,
+    enabled: false,
     endpoint: "/api/status",
     refreshSeconds: 60                             // як часто оновлювати, поки сторінка відкрита
   },
@@ -183,7 +183,7 @@ window.VADE_CONFIG = {
       badge: { pl: "Hit", en: "Top pick", uk: "Хіт", ru: "Хит" },
       specs: [
         "RTX 5070",
-        { pl: "Monitor 280 Hz", en: "280 Hz monitor", uk: "Монітор 280 Гц", ru: "Монитор 280 Гц" },
+        { pl: "X2 Monitor 280 Hz", en: "280 Hz monitor", uk: "Монітор 280 Гц", ru: "Монитор 280 Гц" },
         { pl: "Słuchawki bezprzewodowe z mikrofonem HyperX Cloud III Wireless", en: "HyperX Cloud III Wireless headset with mic", uk: "Бездротові навушники з мікрофоном HyperX Cloud III Wireless", ru: "Беспроводные наушники с микрофоном HyperX Cloud III Wireless" },
         { pl: "Mysz Logitech G Pro X Superlight 2", en: "Logitech G Pro X Superlight 2 mouse", uk: "Миша Logitech G Pro X Superlight 2", ru: "Мышь Logitech G Pro X Superlight 2" },
         { pl: "Klawiatura Logitech G412 TKL", en: "Logitech G412 TKL keyboard", uk: "Клавіатура Logitech G412 TKL", ru: "Клавиатура Logitech G412 TKL" }
