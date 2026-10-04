@@ -626,6 +626,15 @@
   const PH_POSITIONS = ["18%", "80%", "50%", "28%", "70%"];
   const placeholderHtml = (item, i) => `<div class="slide__ph" style="--x:${PH_POSITIONS[i % PH_POSITIONS.length]}">${icon(item.icon || "gamepad-2")}</div>`;
 
+  // Відео — за розширенням у шляху, тож ?параметри в посиланні не заважають (….mp4?raw=1)
+  const isVideo = (src) => {
+    try {
+      return /\.(mp4|mov|webm)$/i.test(new URL(src, location.href).pathname);
+    } catch {
+      return false;
+    }
+  };
+
   function galleryHtml() {
     const items = C.gallery || [];
     if (!items.length) return "";
@@ -636,10 +645,10 @@
         return `
         <figure class="slide" role="group" aria-roledescription="${esc(ui("gallery.slide"))}" aria-label="${esc(ui("gallery.slideOf", { n: i + 1, total }))}" data-ph-index="${i}">
           ${
-            item.src 
-              ? (item.src.toLowerCase().match(/\.(mp4|mov)$/)
-                ? `<video src="${esc(item.src)}" autoplay loop muted playsinline width="800" height="600" style="object-fit: cover; width: 100%; height: 100%;"></video>` 
-                : `<img src="${esc(item.src)}" alt="${esc(item.caption || site.name)}" width="800" height="600" loading="lazy" decoding="async">`)
+            item.src
+              ? (item.isVideo || isVideo(item.src)
+                ? `<video src="${esc(item.src)}" autoplay loop muted playsinline width="800" height="600" style="object-fit: cover; width: 100%; height: 100%;"></video>`
+                : `<img src="${esc(item.src)}" alt="${esc(caption || site.name)}" width="800" height="600" loading="lazy" decoding="async">`)
               : placeholderHtml(item, i)
           }
           ${caption ? `<figcaption>${esc(caption)}</figcaption>` : ""}
@@ -869,6 +878,90 @@
       autoplayTimer = setInterval(() => {
         if (!autoplayOff && !paused && visible && !document.hidden) go(slideIndex + 1);
       }, 4500);
+    }
+  }
+
+  /* ================= Галерея з Google Таблиці ================= */
+
+  // Таблиця: колонка A — посилання на фото/відео, B — тип («фото» / «відео»), C — підпис (необов'язково).
+  // Перший рядок — заголовки.
+  // Рядки без посилання http(s) (порожні, інструкція збоку тощо) пропускаються.
+  // Якщо таблиця недоступна або в ній ще немає посилань — лишається галерея з config.js.
+
+  // CSV з лапками: коми й переноси рядків усередині "…" — частина клітинки, "" — це одна лапка
+  function parseCsv(text) {
+    const rows = [];
+    let row = [];
+    let cell = "";
+    let quoted = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (quoted) {
+        if (ch === '"' && text[i + 1] === '"') {
+          cell += '"';
+          i++;
+        } else if (ch === '"') quoted = false;
+        else cell += ch;
+      } else if (ch === '"') quoted = true;
+      else if (ch === ",") {
+        row.push(cell);
+        cell = "";
+      } else if (ch === "\n" || ch === "\r") {
+        if (ch === "\r" && text[i + 1] === "\n") i++;
+        row.push(cell);
+        rows.push(row);
+        row = [];
+        cell = "";
+      } else cell += ch;
+    }
+    row.push(cell);
+    rows.push(row);
+    return rows;
+  }
+
+  // Посилання Imgur на сторінку (imgur.com/abc) → пряме на файл: i.imgur.com/abc.mp4 для відео, abc.jpeg для фото; .gifv → .mp4
+  function normalizeMediaUrl(raw, isVideoType) {
+    let url;
+    try {
+      url = new URL(raw.trim());
+    } catch {
+      return "";
+    }
+    if (url.protocol !== "https:" && url.protocol !== "http:") return "";
+    const host = url.hostname.replace(/^www\.|^m\./, "");
+    if (host === "imgur.com" || host === "i.imgur.com") {
+      const [id, ...rest] = url.pathname.split("/").filter(Boolean);
+      if (!id || rest.length || id === "a" || id === "gallery") return ""; // альбоми не підтримуються
+      if (/\.gifv$/i.test(id)) return `https://i.imgur.com/${id.replace(/\.gifv$/i, ".mp4")}`;
+      return `https://i.imgur.com/${/\.\w+$/.test(id) ? id : id + (isVideoType ? ".mp4" : ".jpeg")}`;
+    }
+    return url.href;
+  }
+
+  async function fetchGalleryData() {
+    if (!C.galleryCsvUrl) return false;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    try {
+      const res = await fetch(C.galleryCsvUrl, { cache: "no-store", signal: controller.signal });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const items = parseCsv(await res.text())
+        .slice(1)
+        .map(([url = "", mediaType = "", caption = ""]) => {
+          const isVideoType = /відео|video/i.test(mediaType);
+          const item = { src: normalizeMediaUrl(url, isVideoType), isVideo: isVideoType };
+          if (caption.trim()) item.caption = caption.trim();
+          return item;
+        })
+        .filter((item) => item.src);
+      if (!items.length) return false;
+      C.gallery = items;
+      return true;
+    } catch (error) {
+      if (T.debug) warnOnce("не вдалося завантажити галерею з таблиці: " + error);
+      return false;
+    } finally {
+      clearTimeout(timeout);
     }
   }
 
@@ -1386,6 +1479,13 @@
   applyLanguage();
   initConsent();
   initAvailability();
+  // Сторінка не чекає на Google: спершу показується галерея з config.js, а коли таблиця
+  // завантажиться — сторінка перемальовується з фото з таблиці (без повторної анімації)
+  fetchGalleryData().then((updated) => {
+    if (!updated) return;
+    document.documentElement.classList.add("no-anim");
+    applyLanguage();
+  });
   registerServiceWorker();
   setInterval(() => {
     renderStatus();
