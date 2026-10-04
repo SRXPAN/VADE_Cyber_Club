@@ -46,6 +46,8 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
+  // Відео браузер вантажить шматками (Range → відповідь 206): такі запити не чіпаємо, їх не можна класти в кеш
+  if (request.headers.has("range")) return;
   const url = new URL(request.url);
 
   if (url.origin === self.location.origin) {
@@ -71,7 +73,8 @@ function pageKey(url) {
 }
 
 function cacheable(response) {
-  return response && (response.ok || response.type === "opaque");
+  // Лише повні відповіді 200: часткову 206 Cache API не приймає (помилка «Partial response is unsupported»)
+  return response && (response.status === 200 || response.type === "opaque");
 }
 
 async function networkFirst(request, key) {
