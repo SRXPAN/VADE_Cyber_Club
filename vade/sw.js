@@ -2,10 +2,10 @@
    • Сторінка, config.js, app.js, styles.css — «спершу мережа»: зміни в config.js видно одразу,
      а без інтернету відкривається остання збережена версія.
    • Картинки, іконки та шрифти — «спершу кеш»: відкриваються миттєво, оновлюються у фоні.
-   • /api/ (вільні ПК), аналітика й карти не кешуються ніколи.
+   • Аналітика, карти, Google Таблиця та Imgur не кешуються.
    Змінили список CORE нижче — збільште VERSION, щоб старий кеш видалився. */
 
-const VERSION = "vade-v1";
+const VERSION = "vade-v2";
 const CORE = [
   "./",
   "index.html",
@@ -49,7 +49,6 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
 
   if (url.origin === self.location.origin) {
-    if (url.pathname.includes("/api/")) return; // живі дані — лише з мережі
     if (request.mode === "navigate") {
       event.respondWith(networkFirst(request, pageKey(url)));
       return;

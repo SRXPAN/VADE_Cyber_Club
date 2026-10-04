@@ -9,6 +9,24 @@
 /manifest.json
   Content-Type: application/manifest+json; charset=utf-8
 
+# Захисні заголовки для всіх сторінок і файлів.
+#
+# Content-Security-Policy — білий список: браузер завантажує скрипти, картинки, відео тощо ЛИШЕ з цих адрес.
+# Підставлений чужий скрипт або картинка з довільного сайту просто не запуститься.
+#   script-src   — свій сайт, Google Analytics 4 (gtag.js), Meta Pixel, cdnjs (бібліотека QR-коду)
+#   style-src    — 'unsafe-inline' потрібен: кольори іконок задаються атрибутом style="--c:…"
+#   img-src      — фото з Imgur, data:/blob: (QR-код), пікселі GA4 і Meta
+#   media-src    — відео з Imgur і з самого сайту
+#   connect-src  — Google Таблиця галереї (docs.google.com → *.googleusercontent.com), GA4, Meta;
+#                  шрифти й cdnjs — бо їх кешує Service Worker (sw.js)
+#   frame-src    — вбудована карта Google Maps
+#   frame-ancestors 'none' — сайт не можна вбудувати в чужу сторінку (захист від clickjacking)
+# УВАГА: підключили новий сервіс (TikTok Pixel, Clarity, GTM, YouTube тощо) — додайте його адреси сюди,
+# інакше браузер його заблокує. Помилки CSP видно в консолі браузера (F12 → Console).
 /*
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://www.googletagmanager.com https://connect.facebook.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://i.imgur.com https://*.google-analytics.com https://*.googletagmanager.com https://*.g.doubleclick.net https://www.google.com https://www.google.pl https://www.facebook.com; media-src 'self' https://i.imgur.com; connect-src 'self' https://docs.google.com https://*.googleusercontent.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://*.g.doubleclick.net https://www.google.com https://www.facebook.com https://connect.facebook.net https://fonts.googleapis.com https://fonts.gstatic.com https://cdnjs.cloudflare.com; frame-src https://www.google.com https://maps.google.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests
+  X-Frame-Options: DENY
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin

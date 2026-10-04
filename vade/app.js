@@ -1,5 +1,5 @@
 /* VADE — логіка сторінки: рендер з config.js, чотири мови (PL/EN/UA/RU), графік роботи, галерея,
-   «Поділитися», банер cookies, аналітика з UTM-мітками, кнопка трансляції, вільні ПК з SENET і PWA.
+   «Поділитися», банер cookies, аналітика з UTM-мітками, кнопка трансляції, галерея з Google Таблиці і PWA.
    Контент, переклади та ID трекерів змінюються в config.js. */
 (() => {
   "use strict";
@@ -149,7 +149,7 @@
   /* ================= UTM-мітки ================= */
 
   // Мітки з адреси сторінки (?utm_source=instagram&utm_medium=bio) переносимо на зовнішні посилання
-  // (бронювання SENET тощо), щоб система бронювання бачила, звідки прийшов клієнт.
+  // (онлайн-бронювання тощо), щоб система бронювання бачила, звідки прийшов клієнт.
   // Запам'ятовуємо їх на сесію: після перезавантаження без міток атрибуція не губиться.
   const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "utm_id"];
   const UTM_KEY = "vade_utm";
@@ -250,9 +250,14 @@
     };
   };
 
-  function loadScript(src) {
+  // integrity (SRI) — браузер виконає файл, лише якщо його хеш збігся: підмінений на CDN файл не запуститься
+  function loadScript(src, integrity) {
     const script = document.createElement("script");
     script.async = true;
+    if (integrity) {
+      script.integrity = integrity;
+      script.crossOrigin = "anonymous";
+    }
     script.src = src;
     document.head.appendChild(script);
     return script;
@@ -536,7 +541,6 @@
         ${tagline ? `<p class="hero__tagline">${esc(tagline)}</p>` : ""}
         <div class="hero__badges">
           <p class="status" data-status hidden><span class="status__dot"></span><span data-status-text></span></p>
-          <p class="status status--avail" data-avail hidden></p>
         </div>
         ${
           socials.length
@@ -941,23 +945,28 @@
     return rows;
   }
 
+  // Білий список джерел: з таблиці приймаються ЛИШЕ файли Imgur і файли з цього ж сайту (assets/…).
+  // Посилання на будь-який інший сайт ігнорується — навіть якщо хтось чужий отримає доступ до таблиці,
+  // підставити в галерею картинку з довільного сайту не вийде.
   // Посилання Imgur на сторінку (imgur.com/abc) → пряме на файл: i.imgur.com/abc.mp4 для відео, abc.jpeg для фото; .gifv → .mp4
+  const IMGUR_HOSTS = ["imgur.com", "www.imgur.com", "m.imgur.com", "i.imgur.com"];
+  const IMGUR_FILE = /^[A-Za-z0-9]{5,10}(\.(jpe?g|png|gif|gifv|webp|mp4))?$/i; // ID Imgur — лише латиниця й цифри
+
   function normalizeMediaUrl(raw, isVideoType) {
     let url;
     try {
-      url = new URL(raw.trim());
+      url = new URL(raw.trim(), location.href); // відносний шлях (assets/foto/…) — від адреси сайту
     } catch {
       return "";
     }
     if (url.protocol !== "https:" && url.protocol !== "http:") return "";
-    const host = url.hostname.replace(/^www\.|^m\./, "");
-    if (host === "imgur.com" || host === "i.imgur.com") {
-      const [id, ...rest] = url.pathname.split("/").filter(Boolean);
-      if (!id || rest.length || id === "a" || id === "gallery") return ""; // альбоми не підтримуються
-      if (/\.gifv$/i.test(id)) return `https://i.imgur.com/${id.replace(/\.gifv$/i, ".mp4")}`;
-      return `https://i.imgur.com/${/\.\w+$/.test(id) ? id : id + (isVideoType ? ".mp4" : ".jpeg")}`;
-    }
-    return url.href;
+    if (url.origin === location.origin) return url.href;
+    if (!IMGUR_HOSTS.includes(url.hostname.toLowerCase())) return "";
+
+    const [id, ...rest] = url.pathname.split("/").filter(Boolean);
+    if (!id || rest.length || !IMGUR_FILE.test(id)) return ""; // альбоми (/a/…), галереї та інше не підтримуються
+    if (/\.gifv$/i.test(id)) return `https://i.imgur.com/${id.replace(/\.gifv$/i, ".mp4")}`;
+    return `https://i.imgur.com/${/\.\w+$/.test(id) ? id : id + (isVideoType ? ".mp4" : ".jpeg")}`;
   }
 
   async function fetchGalleryData() {
@@ -1049,6 +1058,8 @@
     ["x", (u, t) => `https://x.com/intent/tweet?url=${u}&text=${t}`],
   ];
   const QR_LIB = "https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js";
+  // Хеш саме цієї версії (з cdnjs). Змінили версію в QR_LIB — візьміть новий хеш на cdnjs.com, інакше QR не з'явиться
+  const QR_LIB_SRI = "sha512-ZDSPMa/JM1D+7kdg2x3BsruQ6T/JpJo3jWDWkCZsP+5yVyp1KfESqLI+7RqB5k24F7p2cV7i2YHh/890y6P6Sw==";
   let qrState = "idle";
 
   function shareHtml() {
@@ -1111,7 +1122,7 @@
   function ensureQr() {
     if (qrState !== "idle") return;
     qrState = "loading";
-    const script = loadScript(QR_LIB);
+    const script = loadScript(QR_LIB, QR_LIB_SRI);
     script.onload = () => {
       qrState = "ready";
       drawQr();
@@ -1230,84 +1241,6 @@
     if (event.target.closest("#cookieSettings")) renderConsent(true);
   }
 
-  /* ================= Вільні ПК (SENET через /api/status) ================= */
-
-  // Відповідь функції functions/api/status.js: { available: 12, total: 20, updatedAt: "…" }.
-  // Якщо функції немає (локальний перегляд, інший хостинг) або SENET не налаштовано — бейдж не показується.
-  const AV = C.availability || {};
-  let availability = null;
-  let availabilityOff = !AV.enabled || !AV.endpoint || location.protocol === "file:";
-  let availabilityTimer = 0;
-
-  // Множина за правилами мови: 1 wolny / 2 wolne / 5 wolnych PC
-  function pluralText(path, n) {
-    const forms = tr(lookup(path));
-    if (!isDict(forms)) return fill(forms, { n: formatNumber(n) });
-    let category = "other";
-    try {
-      category = new Intl.PluralRules(langInfo().locale || lang).select(n);
-    } catch {
-      /* старий браузер — лишається "other" */
-    }
-    return fill(forms[category] ?? forms.other ?? forms.many ?? Object.values(forms)[0], { n: formatNumber(n) });
-  }
-
-  function renderAvailability() {
-    const el = $("[data-avail]");
-    if (!el) return;
-    // Коли клуб зачинено, SENET бачить усі ПК «вільними» — такий бейдж лише заплутає
-    const closed = hasSchedule && !getStatus().open;
-    if (!availability || closed) {
-      el.hidden = true;
-      return;
-    }
-    const n = availability.available;
-    el.dataset.state = n > 0 ? "open" : "closed";
-    el.title = ui("availability.label");
-    el.innerHTML = `<span class="status__dot"></span><span><b>${esc(n > 0 ? pluralText("availability.free", n) : ui("availability.none"))}</b></span>`;
-    el.hidden = false;
-  }
-
-  async function loadAvailability() {
-    if (availabilityOff) return;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
-    try {
-      const res = await fetch(AV.endpoint, { headers: { Accept: "application/json" }, cache: "no-store", signal: controller.signal });
-      // 404 — функції немає на цьому хостингу; 503 — SENET ще не налаштовано. Більше не питаємо.
-      if (res.status === 404 || res.status === 503) {
-        availabilityOff = true;
-        clearInterval(availabilityTimer);
-        availability = null;
-      } else if (!res.ok) {
-        availability = null;
-      } else {
-        const data = await res.json();
-        const available = Number(data.available);
-        availability = Number.isFinite(available) && available >= 0 ? { available: Math.floor(available), total: Number(data.total) || null } : null;
-      }
-    } catch (error) {
-      availability = null;
-      if (T.debug) warnOnce("не вдалося отримати вільні ПК: " + error);
-    } finally {
-      clearTimeout(timeout);
-    }
-    renderAvailability();
-  }
-
-  function initAvailability() {
-    if (availabilityOff) return;
-    loadAvailability();
-    const every = Math.max(15, Number(AV.refreshSeconds) || 60) * 1000;
-    availabilityTimer = setInterval(() => {
-      if (!document.hidden) loadAvailability();
-    }, every);
-    // Повернулись на вкладку — одразу свіжі дані
-    document.addEventListener("visibilitychange", () => {
-      if (!document.hidden) loadAvailability();
-    });
-  }
-
   /* ================= PWA ================= */
 
   // Service Worker: сторінка відкривається без інтернету і швидше при повторних візитах.
@@ -1350,7 +1283,7 @@
         ? `${Math.min(...prices) === Math.max(...prices) ? Math.min(...prices) : `${Math.min(...prices)}–${Math.max(...prices)}`} ${currency}`.trim()
         : undefined);
 
-    // Онлайн-бронювання (SENET) — як дія «Забронювати» для Google; дзвінок сюди не підходить
+    // Онлайн-бронювання — як дія «Забронювати» для Google; дзвінок сюди не підходить
     const booking = C.booking || {};
     const reserve = isWeb(booking.url)
       ? {
@@ -1466,7 +1399,6 @@
 
     render();
     renderStatus();
-    renderAvailability();
     initCarousel();
     renderShare();
     refreshConsent();
@@ -1500,7 +1432,6 @@
   initShare();
   applyLanguage();
   initConsent();
-  initAvailability();
   // Сторінка не чекає на Google: спершу показується галерея з config.js, а коли таблиця
   // завантажиться — сторінка перемальовується з фото з таблиці (без повторної анімації)
   fetchGalleryData().then((updated) => {
@@ -1509,10 +1440,7 @@
     applyLanguage();
   });
   registerServiceWorker();
-  setInterval(() => {
-    renderStatus();
-    renderAvailability(); // о 00:00 клуб зачиняється — бейдж вільних ПК ховається
-  }, 60 * 1000);
+  setInterval(renderStatus, 60 * 1000); // статус «Otwarte / Zamknięte» оновлюється щохвилини
 
   document.addEventListener("click", onTrackedClick);
   document.addEventListener("auxclick", onTrackedClick);

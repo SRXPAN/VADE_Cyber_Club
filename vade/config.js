@@ -69,7 +69,7 @@ window.VADE_CONFIG = {
   },
 
   // Головна кнопка. Онлайн-бронювання клуб поки не має, тому кнопка дзвонить у клуб.
-  // ЗАМІНИТИ, коли з'явиться бронювання в SENET: вставте посилання в url (UTM-мітки з біо додадуться до нього самі)
+  // ЗАМІНИТИ, коли з'явиться онлайн-бронювання: вставте посилання в url (UTM-мітки з біо додадуться до нього самі)
   // і змініть subtitle, напр. { pl: "Online w minutę, bez dzwonienia", en: "Online in a minute, no calls", ... }.
   booking: {
     url: "tel:+48515588475",
@@ -84,14 +84,6 @@ window.VADE_CONFIG = {
     url: "",                                       // ЗАМІНИТИ: посилання на Twitch / YouTube / Kick
     text:     { pl: "Transmisja na żywo", en: "Live stream", uk: "Пряма трансляція", ru: "Прямая трансляция" },
     subtitle: { pl: "Oglądaj teraz",      en: "Watch now",   uk: "Дивитися зараз",   ru: "Смотреть сейчас" }
-  },
-
-  // Бейдж «🟢 12 вільних ПК» у шапці. Дані бере функція Cloudflare Pages functions/api/status.js з API SENET.
-  // Поки функцію не налаштовано (або сайт відкрито не з Cloudflare), бейдж просто не показується.
-  availability: {
-    enabled: false,
-    endpoint: "/api/status",
-    refreshSeconds: 60                             // як часто оновлювати, поки сторінка відкрита
   },
 
   // Іконки соцмереж під логотипом.
@@ -321,18 +313,6 @@ window.VADE_CONFIG = {
 
     live: {
       badge: { pl: "Na żywo", en: "Live", uk: "Наживо", ru: "В эфире" }
-    },
-
-    // Бейдж вільних ПК. Форми множини: one — 1, few — 2–4, many — 5+ (для польської, української й російської)
-    availability: {
-      free: {
-        pl: { one: "{n} wolny PC",       few: "{n} wolne PC",       many: "{n} wolnych PC",     other: "{n} wolnego PC" },
-        en: { one: "{n} PC available",   other: "{n} PCs available" },
-        uk: { one: "{n} вільний ПК",     few: "{n} вільні ПК",      many: "{n} вільних ПК",     other: "{n} вільного ПК" },
-        ru: { one: "{n} свободный ПК",   few: "{n} свободных ПК",   many: "{n} свободных ПК",   other: "{n} свободного ПК" }
-      },
-      none:  { pl: "Wszystkie PC zajęte", en: "All PCs are busy", uk: "Усі ПК зайняті", ru: "Все ПК заняты" },
-      label: { pl: "Dostępność komputerów teraz", en: "PC availability right now", uk: "Наявність ПК зараз", ru: "Наличие ПК сейчас" }
     },
 
     zones: {

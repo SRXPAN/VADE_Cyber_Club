@@ -352,7 +352,7 @@ button {
   font-weight: 600;
 }
 
-/* Статус «Otwarte» і бейдж вільних ПК — в один ряд, на вузьких екранах переносяться */
+/* Статус «Otwarte / Zamknięte» під назвою клубу */
 .hero__badges {
   display: flex;
   flex-wrap: wrap;
