@@ -199,28 +199,32 @@
     });
   }
 
+  // Кольори іконок — лише з палітри бренду (бірюза / маджента), без «брендових» кольорів соцмереж:
+  // так сторінка виглядає цілісно. Власний колір для кнопки — поле color у config.js → links.
+  const MINT = "var(--accent)";
+  const MAG = "var(--accent-2)";
   const NETWORKS = {
-    instagram: ["Instagram", "#E4405F"],
-    tiktok: ["TikTok", "#FE2C55"],
-    telegram: ["Telegram", "#26A5E4"],
-    discord: ["Discord", "#5865F2"],
-    youtube: ["YouTube", "#FF0033"],
-    facebook: ["Facebook", "#1877F2"],
-    whatsapp: ["WhatsApp", "#25D366"],
-    viber: ["Viber", "#7360F2"],
-    x: ["X", "#FFFFFF"],
+    instagram: ["Instagram", MAG],
+    tiktok: ["TikTok", MINT],
+    telegram: ["Telegram", MINT],
+    discord: ["Discord", MAG],
+    youtube: ["YouTube", MAG],
+    facebook: ["Facebook", MINT],
+    whatsapp: ["WhatsApp", MINT],
+    viber: ["Viber", MAG],
+    x: ["X", MINT],
   };
   const ICON_COLORS = {
-    phone: "#34D399",
-    utensils: "#F59E0B",
-    trophy: "#FACC15",
-    handshake: "#E040FB",
-    "map-pin": "#2EF2C4",
-    "gamepad-2": "#2EF2C4",
-    monitor: "#2EF2C4",
-    link: "#A3A9BC",
+    phone: MINT,
+    utensils: MAG,
+    trophy: MINT,
+    handshake: MAG,
+    "map-pin": MINT,
+    "gamepad-2": MINT,
+    monitor: MINT,
+    link: MAG,
   };
-  const colorFor = (item) => item.color || NETWORKS[item.icon]?.[1] || ICON_COLORS[item.icon] || "var(--accent)";
+  const colorFor = (item) => item.color || NETWORKS[item.icon]?.[1] || ICON_COLORS[item.icon] || MINT;
 
   /* ================= Аналітика та згода на cookies ================= */
 
@@ -1110,7 +1114,7 @@
     const ctx = canvas.getContext("2d");
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "#07080d";
+    ctx.fillStyle = "#0a0b0d";
     for (let r = 0; r < count; r++) {
       for (let c = 0; c < count; c++) {
         if (qr.isDark(r, c)) ctx.fillRect(offset + c * cell, offset + r * cell, cell, cell);
@@ -1301,7 +1305,7 @@
       description: t(site.description) || undefined,
       url: pageUrl,
       logo: abs(site.logo || "assets/logo.svg"),
-      image: [abs("assets/og-image.png"), abs(site.logo || "assets/logo.svg")],
+      image: [abs("assets/og-image.jpg"), abs(site.logo || "assets/logo.svg")],
       telephone: contacts.phone || undefined,
       priceRange,
       currenciesAccepted: site.currencyCode || undefined,

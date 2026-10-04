@@ -15,8 +15,8 @@
   --accent-2: #e040fb;         /* маджента — бейджі та особливі позначки */
   --on-accent: #03140f;        /* текст на бірюзовій кнопці: на яскравій м'яті білий не читається */
   --on-accent-2: #1a0420;      /* текст на маджента-бейджі */
-  --ok: #34d399;
-  --bad: #f87171;
+  --ok: var(--accent);       /* «відчинено» — бірюза бренду */
+  --bad: #ff4d85;            /* «зачинено» — рожево-малиновий, у парі з маджентою */
   --radius: 18px;
   --font-display: "Unbounded", "Segoe UI", system-ui, sans-serif;
   --font-body: "Manrope", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -85,6 +85,7 @@ button {
   inset: 0;
   z-index: -1;
   pointer-events: none;
+  overflow: hidden;
   background:
     radial-gradient(640px 420px at 12% -8%, rgba(46, 242, 196, 0.24), transparent 70%),
     radial-gradient(520px 420px at 105% 6%, rgba(224, 64, 251, 0.13), transparent 70%);
@@ -93,23 +94,51 @@ button {
     radial-gradient(520px 420px at 105% 6%, color-mix(in srgb, var(--accent-2) 13%, transparent), transparent 70%);
 }
 
-/* 3D-фон «кіберзал» (arena.js малює його в цьому canvas). Без JS лишаються лише кольорові відблиски .bg */
+/* Фон «кіберклуб»: arena.js малює ізометричний 3D-інтер'єр у цьому canvas (різко, з урахуванням щільності пікселів).
+   Без JS лишаються лише кольорові відблиски .bg */
 .bg__scene {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
   display: block;
+  opacity: 0;
+  transition: opacity 0.9s ease;
 }
 
-/* Затемнення поверх 3D-фону: текст і кнопки завжди чіткі. Найтемніше — за шапкою з назвою клубу
-   і по центру, де колонка з кнопками; по краях екрана зал видно краще */
+.bg__scene.is-ready {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg__scene {
+    transition: none;
+  }
+}
+
+/* Затемнення поверх фону: текст і кнопки завжди чіткі.
+   Комп'ютер: темніше за колонкою з кнопками, по боках зал видно краще. */
 .bg::after {
   content: "";
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(520px 420px at 50% 16%, rgba(10, 11, 13, 0.72), transparent 75%),
-    linear-gradient(90deg, rgba(10, 11, 13, 0.25), rgba(10, 11, 13, 0.55) 30%, rgba(10, 11, 13, 0.55) 70%, rgba(10, 11, 13, 0.25)),
-    linear-gradient(to bottom, transparent 55%, rgba(10, 11, 13, 0.6));
+    linear-gradient(to bottom, rgba(10, 11, 13, 0.4), transparent 24%, transparent 74%, rgba(10, 11, 13, 0.6)),
+    linear-gradient(
+      90deg,
+      rgba(10, 11, 13, 0.12) calc(50% - 380px),
+      rgba(10, 11, 13, 0.66) calc(50% - 250px),
+      rgba(10, 11, 13, 0.66) calc(50% + 250px),
+      rgba(10, 11, 13, 0.12) calc(50% + 380px)
+    );
+}
+
+/* Телефон: колонка займає всю ширину, тож фон видно лише вгорі за шапкою; нижче він поступово гасне */
+@media (max-width: 560px) {
+  .bg::after {
+    background:
+      radial-gradient(240px 190px at 50% 200px, rgba(10, 11, 13, 0.46), transparent 100%),
+      linear-gradient(to bottom, rgba(10, 11, 13, 0.14) 0, rgba(10, 11, 13, 0.32) 34%, rgba(10, 11, 13, 0.84) 58%, rgba(10, 11, 13, 0.95) 100%);
+  }
 }
 
 /* ---------- Каркас ---------- */
@@ -336,6 +365,7 @@ button {
   padding-left: 0.08em; /* компенсує letter-spacing, щоб назва стояла рівно по центру */
   font: 800 34px/1.05 var(--font-display);
   letter-spacing: 0.08em;
+  text-shadow: 0 2px 16px rgba(10, 11, 13, 0.85);
 }
 
 .hero__tagline {
@@ -343,6 +373,7 @@ button {
   color: var(--muted);
   font-size: 15px;
   font-weight: 500;
+  text-shadow: 0 1px 10px rgba(10, 11, 13, 0.9);
 }
 
 /* ---------- Статус «Відчинено / Зачинено» ---------- */
@@ -399,11 +430,11 @@ button {
 
 @keyframes ping {
   0% {
-    box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.45);
+    box-shadow: 0 0 0 0 rgba(46, 242, 196, 0.45);
   }
   70%,
   100% {
-    box-shadow: 0 0 0 7px rgba(52, 211, 153, 0);
+    box-shadow: 0 0 0 7px rgba(46, 242, 196, 0);
   }
 }
 
@@ -454,9 +485,11 @@ button {
   gap: 14px;
   margin-top: 26px;
   padding: 12px 16px 12px 12px;
-  border: 1px solid rgba(239, 68, 68, 0.55);
+  border: 1px solid rgba(224, 64, 251, 0.55);
+  border: 1px solid color-mix(in srgb, var(--accent-2) 55%, transparent);
   border-radius: var(--radius);
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.22), rgba(239, 68, 68, 0.06));
+  background: linear-gradient(135deg, rgba(224, 64, 251, 0.22), rgba(224, 64, 251, 0.06));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent-2) 22%, transparent), color-mix(in srgb, var(--accent-2) 6%, transparent));
   color: #fff;
   text-decoration: none;
   animation: live-glow 2s ease-in-out infinite;
@@ -483,7 +516,8 @@ button {
   gap: 7px;
   padding: 7px 11px;
   border-radius: 10px;
-  background: #ef4444;
+  background: var(--accent-2);
+  color: var(--on-accent-2);
   font: 800 11.5px/1 var(--font-display);
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -493,7 +527,7 @@ button {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--on-accent-2);
   animation: live-blink 1.2s ease-in-out infinite;
 }
 
@@ -523,10 +557,10 @@ button {
 @keyframes live-glow {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.45);
+    box-shadow: 0 0 0 0 rgba(224, 64, 251, 0.45);
   }
   50% {
-    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+    box-shadow: 0 0 0 6px rgba(224, 64, 251, 0);
   }
 }
 
@@ -1500,9 +1534,9 @@ button {
   gap: 8px;
   padding: 10px 16px;
   border-radius: 999px;
-  background: #fff;
-  box-shadow: 0 12px 30px -8px rgba(0, 0, 0, 0.6);
-  color: #0b0c12;
+  background: var(--accent);
+  box-shadow: 0 12px 30px -8px rgba(0, 0, 0, 0.6), 0 0 28px -10px var(--accent);
+  color: var(--on-accent);
   font-size: 14px;
   font-weight: 700;
   white-space: nowrap;
@@ -1520,13 +1554,35 @@ button {
 .toast .ico {
   width: 18px;
   height: 18px;
-  color: #059669;
+  color: var(--on-accent);
 }
 
 .noscript {
   margin: 24px 0;
   color: var(--muted);
   text-align: center;
+}
+
+/* ---------- «Скло» на широких екранах ---------- */
+
+/* Картки ледь прозорі й розмивають фон за собою: сцена видна, а текст лишається чітким.
+   На телефоні фон і так ховається за картками, тому розмиття там не вмикаємо (чистіше й економить батарею). */
+@media (min-width: 700px) {
+  @supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+    .link,
+    .zone:not(.zone--featured),
+    .card {
+      background-color: rgba(17, 19, 23, 0.66);
+      -webkit-backdrop-filter: blur(14px) saturate(1.2);
+      backdrop-filter: blur(14px) saturate(1.2);
+    }
+
+    .cta--site {
+      background: color-mix(in srgb, var(--accent) 9%, rgba(17, 19, 23, 0.6));
+      -webkit-backdrop-filter: blur(14px) saturate(1.2);
+      backdrop-filter: blur(14px) saturate(1.2);
+    }
+  }
 }
 
 /* ---------- Зменшений рух ---------- */
