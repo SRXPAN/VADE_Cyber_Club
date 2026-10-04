@@ -766,10 +766,13 @@ button {
 .carousel__rail {
   position: relative;
   display: flex;
+  align-items: flex-start; /* кожен слайд — своєї висоти, а висоту стрічки підганяє app.js під активний */
   gap: 12px;
   margin: 0 -16px;
   padding: 0 16px;
   overflow-x: auto;
+  overflow-y: hidden;
+  transition: height 0.3s ease;
   scroll-snap-type: x mandatory;
   scroll-padding: 0 16px;
   overscroll-behavior-x: contain;
@@ -783,21 +786,27 @@ button {
 .slide {
   position: relative;
   flex: 0 0 86%;
-  aspect-ratio: 4 / 3;
   margin: 0;
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: #000; /* поля навколо фото/відео іншої пропорції — чорні */
+  background: #000;
   scroll-snap-align: center;
 }
 
-/* contain — фото й відео показуються повністю, без обрізання */
+/* Заглушка без фото позиціонована absolute і своєї висоти не має — їй лишаємо 4:3 */
+.slide:has(> .slide__ph) {
+  aspect-ratio: 4 / 3;
+}
+
+/* Висоту задає саме фото/відео (вертикальне — вищий слайд). Дуже високі обмежені 75vh:
+   тоді contain показує їх повністю з полями по боках, без розтягування */
 .slide img,
 .slide video {
   display: block;
   width: 100%;
-  height: 100%;
+  height: auto;
+  max-height: 75vh;
   object-fit: contain;
 }
 

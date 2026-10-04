@@ -785,10 +785,14 @@
   let autoplayTimer = 0;
   let galleryObserver = null;
 
+  let carouselAbort = new AbortController(); // знімає слухачі window від попередньої каруселі
+
   function initCarousel() {
     clearInterval(autoplayTimer);
     galleryObserver?.disconnect();
     galleryObserver = null;
+    carouselAbort.abort();
+    carouselAbort = new AbortController();
 
     const root = $(".carousel");
     if (!root) return;
@@ -807,6 +811,7 @@
         const fig = e.target.closest(".slide");
         const i = Number(fig.dataset.phIndex);
         e.target.outerHTML = placeholderHtml((C.gallery || [])[i] || {}, i);
+        fitHeight();
       },
       true
     );
@@ -830,7 +835,18 @@
       });
       slideIndex = best;
       dots.forEach((dot, i) => dot.setAttribute("aria-current", String(i === best)));
+      fitHeight();
     };
+
+    // Аналог autoHeight: стрічка завжди висотою з активний слайд (горизонтальне фото — нижча, вертикальне відео — вища)
+    const fitHeight = () => {
+      const slide = slides[slideIndex];
+      if (slide) rail.style.height = slide.offsetHeight + "px";
+    };
+    // Розміри фото/відео відомі лише після завантаження — тоді й перераховуємо
+    rail.addEventListener("load", fitHeight, true);
+    rail.addEventListener("loadedmetadata", fitHeight, true);
+    window.addEventListener("resize", fitHeight, { passive: true, signal: carouselAbort.signal });
 
     // Після першої дії користувача автопрокрутку вимикаємо, щоб не «смикати» фото з-під пальця
     const onUser = () => {
@@ -873,6 +889,7 @@
     }
 
     if (slideIndex) go(slideIndex, false);
+    fitHeight();
 
     if (slides.length > 1 && !autoplayOff) {
       autoplayTimer = setInterval(() => {
