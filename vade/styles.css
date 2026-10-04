@@ -788,15 +788,17 @@ button {
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: var(--surface-2);
+  background: #000; /* поля навколо фото/відео іншої пропорції — чорні */
   scroll-snap-align: center;
 }
 
-.slide img {
+/* contain — фото й відео показуються повністю, без обрізання */
+.slide img,
+.slide video {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .slide figcaption {

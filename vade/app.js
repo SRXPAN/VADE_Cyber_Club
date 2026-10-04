@@ -647,7 +647,7 @@
           ${
             item.src
               ? (item.isVideo || isVideo(item.src)
-                ? `<video src="${esc(item.src)}" autoplay loop muted playsinline width="800" height="600" style="object-fit: cover; width: 100%; height: 100%;"></video>`
+                ? `<video src="${esc(item.src)}" autoplay loop muted playsinline width="800" height="600"></video>`
                 : `<img src="${esc(item.src)}" alt="${esc(caption || site.name)}" width="800" height="600" loading="lazy" decoding="async">`)
               : placeholderHtml(item, i)
           }
