@@ -130,7 +130,7 @@ window.VADE_CONFIG = {
     },
     {
       id: "menu", icon: "utensils",
-      url: "https://vade-restaurant.pl/section:kuchnia-menu",                                     // ЗАМІНИТИ, якщо є меню бару
+      url: "https://vade-restaurant.pl/a/bHVK-tJNz/section:kuchnia-menu",                                     // ЗАМІНИТИ, якщо є меню бару
       title:    { pl: "Menu baru", en: "Bar menu", uk: "Меню бару", ru: "Меню бара" },
       subtitle: { pl: "Napoje, przekąski i jedzenie", en: "Drinks, snacks and food", uk: "Напої, снеки та їжа", ru: "Напитки, снеки и еда" }
     },
@@ -249,9 +249,10 @@ window.VADE_CONFIG = {
 
   // Кольори бренду
   theme: {
-    accent: "#8B5CF6",     // основний (кнопка бронювання, акценти)
-    accentDeep: "#5B21B6", // темніший відтінок для градієнта кнопки
-    accent2: "#22D3EE"     // другий акцент (деталі, іконки)
+    accent: "#2EF2C4",     // основний: бірюза / м'ята (кнопки, світіння, обводки, 3D-фон)
+    accentDeep: "#0A9E86", // глибока бірюза: градієнт і тінь кнопок
+    accent2: "#E040FB",    // маджента: бейджі, особливі позначки, акценти 3D-фону
+    scene: true            // 3D-фон «кіберзал» (arena.js). false — простий темний фон
   },
 
   /* ---------- Тексти інтерфейсу ----------

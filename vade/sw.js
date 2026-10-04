@@ -5,13 +5,14 @@
    • Аналітика, карти, Google Таблиця та Imgur не кешуються.
    Змінили список CORE нижче — збільште VERSION, щоб старий кеш видалився. */
 
-const VERSION = "vade-v2";
+const VERSION = "vade-v3";
 const CORE = [
   "./",
   "index.html",
   "styles.css",
   "config.js",
   "app.js",
+  "arena.js",
   "manifest.json",
   "assets/logo.svg",
   "assets/favicon.svg",

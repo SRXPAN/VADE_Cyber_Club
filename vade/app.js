@@ -214,10 +214,10 @@
     phone: "#34D399",
     utensils: "#F59E0B",
     trophy: "#FACC15",
-    handshake: "#A78BFA",
-    "map-pin": "#22D3EE",
-    "gamepad-2": "#8B5CF6",
-    monitor: "#22D3EE",
+    handshake: "#E040FB",
+    "map-pin": "#2EF2C4",
+    "gamepad-2": "#2EF2C4",
+    monitor: "#2EF2C4",
     link: "#A3A9BC",
   };
   const colorFor = (item) => item.color || NETWORKS[item.icon]?.[1] || ICON_COLORS[item.icon] || "var(--accent)";

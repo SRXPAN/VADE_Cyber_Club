@@ -1,18 +1,20 @@
 /* VADE — стилі сторінки. Кольори бренду задаються в config.js → theme */
 
 :root {
-  --bg: #07080d;
-  --surface: #0f111a;
-  --surface-2: #161925;
-  --surface-3: #1e2232;
+  --bg: #0a0b0d;
+  --surface: #111317;
+  --surface-2: #171a1f;
+  --surface-3: #1f2329;
   --border: rgba(255, 255, 255, 0.08);
   --border-strong: rgba(255, 255, 255, 0.16);
   --text: #f4f5fa;
-  --muted: #a3a9bc;
-  --faint: #737a91;
-  --accent: #8b5cf6;
-  --accent-deep: #5b21b6;
-  --accent-2: #22d3ee;
+  --muted: #a4aab3;
+  --faint: #737a84;
+  --accent: #2ef2c4;           /* бірюза / м'ята — кнопки, світіння, обводки */
+  --accent-deep: #0a9e86;      /* глибока бірюза — тінь і градієнт кнопок */
+  --accent-2: #e040fb;         /* маджента — бейджі та особливі позначки */
+  --on-accent: #03140f;        /* текст на бірюзовій кнопці: на яскравій м'яті білий не читається */
+  --on-accent-2: #1a0420;      /* текст на маджента-бейджі */
   --ok: #34d399;
   --bad: #f87171;
   --radius: 18px;
@@ -58,7 +60,7 @@ button {
 }
 
 :focus-visible {
-  outline: 2px solid var(--accent-2);
+  outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
 
@@ -84,23 +86,30 @@ button {
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(640px 420px at 12% -8%, rgba(139, 92, 246, 0.24), transparent 70%),
-    radial-gradient(520px 420px at 105% 6%, rgba(34, 211, 238, 0.13), transparent 70%);
+    radial-gradient(640px 420px at 12% -8%, rgba(46, 242, 196, 0.24), transparent 70%),
+    radial-gradient(520px 420px at 105% 6%, rgba(224, 64, 251, 0.13), transparent 70%);
   background:
     radial-gradient(640px 420px at 12% -8%, color-mix(in srgb, var(--accent) 24%, transparent), transparent 70%),
     radial-gradient(520px 420px at 105% 6%, color-mix(in srgb, var(--accent-2) 13%, transparent), transparent 70%);
 }
 
+/* 3D-фон «кіберзал» (arena.js малює його в цьому canvas). Без JS лишаються лише кольорові відблиски .bg */
+.bg__scene {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+/* Затемнення поверх 3D-фону: текст і кнопки завжди чіткі. Найтемніше — за шапкою з назвою клубу
+   і по центру, де колонка з кнопками; по краях екрана зал видно краще */
 .bg::after {
   content: "";
   position: absolute;
   inset: 0;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
-  background-size: 44px 44px;
-  -webkit-mask-image: linear-gradient(to bottom, #000, transparent 55%);
-  mask-image: linear-gradient(to bottom, #000, transparent 55%);
+  background:
+    radial-gradient(520px 420px at 50% 16%, rgba(10, 11, 13, 0.72), transparent 75%),
+    linear-gradient(90deg, rgba(10, 11, 13, 0.25), rgba(10, 11, 13, 0.55) 30%, rgba(10, 11, 13, 0.55) 70%, rgba(10, 11, 13, 0.25)),
+    linear-gradient(to bottom, transparent 55%, rgba(10, 11, 13, 0.6));
 }
 
 /* ---------- Каркас ---------- */
@@ -140,7 +149,7 @@ button {
   padding: 0;
   border: 1px solid var(--border);
   border-radius: 14px;
-  background: rgba(15, 17, 26, 0.8);
+  background: rgba(17, 19, 23, 0.8);
   color: var(--text);
   cursor: pointer;
   -webkit-backdrop-filter: blur(8px);
@@ -196,7 +205,7 @@ button {
 
 .btn--primary {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .btn--primary:hover {
@@ -256,7 +265,7 @@ button {
   padding: 3px;
   border: 1px solid var(--border);
   border-radius: 14px;
-  background: rgba(15, 17, 26, 0.8);
+  background: rgba(17, 19, 23, 0.8);
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
 }
@@ -291,7 +300,7 @@ button {
 .lang-switch__btn[aria-pressed="true"] {
   background: var(--accent);
   box-shadow: 0 6px 18px -8px var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   cursor: default;
 }
 
@@ -539,8 +548,8 @@ button {
   padding: 14px 16px 14px 14px;
   border-radius: var(--radius);
   background: linear-gradient(135deg, var(--accent) 0%, var(--accent-deep) 100%);
-  box-shadow: 0 14px 34px -14px var(--accent), inset 0 1px 0 rgba(255, 255, 255, 0.18);
-  color: #fff;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 60%, transparent), 0 14px 38px -12px var(--accent), 0 0 46px -18px var(--accent), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  color: var(--on-accent);
   text-decoration: none;
   transition: transform 0.15s, box-shadow 0.15s;
 }
@@ -567,7 +576,7 @@ button {
 
 .cta:hover {
   transform: translateY(-1px);
-  box-shadow: 0 18px 40px -14px var(--accent), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  box-shadow: 0 0 0 1px var(--accent), 0 18px 44px -12px var(--accent), 0 0 60px -14px var(--accent), inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
 .cta:active {
@@ -581,7 +590,7 @@ button {
   width: 46px;
   height: 46px;
   border-radius: 13px;
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(3, 20, 15, 0.14);
 }
 
 .cta__icon .ico {
@@ -614,8 +623,15 @@ button {
 
 /* Кнопка «Перейти на повний сайт»: така ж велика, але другим кольором, щоб не конкурувати з бронюванням */
 .cta--site {
-  background: linear-gradient(135deg, var(--accent-2) 0%, var(--accent) 100%);
-  box-shadow: 0 14px 34px -14px var(--accent-2), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  background: color-mix(in srgb, var(--accent) 8%, rgba(17, 19, 23, 0.9));
+  box-shadow: 0 0 34px -16px var(--accent), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  color: var(--text);
+}
+
+.cta--site .cta__icon {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
 }
 
 .cta--site::after {
@@ -623,7 +639,8 @@ button {
 }
 
 .cta--site:hover {
-  box-shadow: 0 18px 40px -14px var(--accent-2), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  border-color: var(--accent);
+  box-shadow: 0 0 44px -14px var(--accent), inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 /* Дуже вузькі телефони (iPhone SE тощо): щоб назва кнопки вміщалась в один рядок */
@@ -663,10 +680,10 @@ button {
   padding: 10px 16px 10px 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: var(--surface);
+  background: rgba(17, 19, 23, 0.88);
   color: var(--text);
   text-decoration: none;
-  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.2s, transform 0.15s;
 }
 
 .link:active {
@@ -721,7 +738,8 @@ button {
 @media (hover: hover) {
   .link:hover {
     background: var(--surface-2);
-    border-color: var(--border-strong);
+    border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+    box-shadow: 0 0 28px -14px var(--accent);
   }
 
   .link:hover .link__arrow {
@@ -814,7 +832,7 @@ button {
   position: absolute;
   inset: auto 0 0;
   padding: 36px 16px 14px;
-  background: linear-gradient(transparent, rgba(4, 5, 9, 0.82));
+  background: linear-gradient(transparent, rgba(10, 11, 13, 0.82));
   color: #fff;
   font-size: 15px;
   font-weight: 700;
@@ -828,8 +846,8 @@ button {
   padding-bottom: 24px;
   color: rgba(255, 255, 255, 0.9);
   background:
-    radial-gradient(110% 90% at var(--x, 20%) 0%, rgba(139, 92, 246, 0.55), transparent 60%),
-    radial-gradient(90% 80% at 100% 100%, rgba(34, 211, 238, 0.3), transparent 60%),
+    radial-gradient(110% 90% at var(--x, 20%) 0%, rgba(46, 242, 196, 0.55), transparent 60%),
+    radial-gradient(90% 80% at 100% 100%, rgba(224, 64, 251, 0.3), transparent 60%),
     var(--surface-3);
   background:
     radial-gradient(110% 90% at var(--x, 20%) 0%, color-mix(in srgb, var(--accent) 55%, transparent), transparent 60%),
@@ -919,7 +937,7 @@ button {
 }
 
 .zone--featured {
-  border-color: rgba(139, 92, 246, 0.5);
+  border-color: rgba(46, 242, 196, 0.5);
   border-color: color-mix(in srgb, var(--accent) 50%, transparent);
   background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 14%, var(--surface)), var(--surface) 70%);
 }
@@ -940,8 +958,9 @@ button {
   flex: none;
   padding: 3px 8px;
   border-radius: 999px;
-  background: var(--accent);
-  color: #fff;
+  background: var(--accent-2);
+  box-shadow: 0 0 16px -4px var(--accent-2);
+  color: var(--on-accent-2);
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.05em;
@@ -984,7 +1003,7 @@ button {
   height: 4px;
   margin-top: 8px;
   border-radius: 50%;
-  background: var(--accent-2);
+  background: var(--accent);
 }
 
 /* ---------- Графік, адреса, карта ---------- */
@@ -1052,7 +1071,7 @@ button {
 }
 
 .address > .ico {
-  color: var(--accent-2);
+  color: var(--accent);
 }
 
 .address__text {
@@ -1091,7 +1110,7 @@ button {
   background:
     repeating-linear-gradient(32deg, transparent 0 46px, rgba(255, 255, 255, 0.05) 46px 48px),
     repeating-linear-gradient(-58deg, transparent 0 70px, rgba(255, 255, 255, 0.04) 70px 73px),
-    radial-gradient(60% 60% at 50% 45%, rgba(139, 92, 246, 0.2), transparent 70%),
+    radial-gradient(60% 60% at 50% 45%, rgba(46, 242, 196, 0.2), transparent 70%),
     var(--surface-2);
 }
 
@@ -1102,8 +1121,8 @@ button {
   height: 52px;
   border-radius: 50%;
   background: var(--accent);
-  box-shadow: 0 0 0 8px rgba(139, 92, 246, 0.22), 0 12px 30px -8px var(--accent);
-  color: #fff;
+  box-shadow: 0 0 0 8px rgba(46, 242, 196, 0.22), 0 12px 30px -8px var(--accent);
+  color: var(--on-accent);
   transition: transform 0.2s;
 }
 
@@ -1115,7 +1134,7 @@ button {
   padding: 8px 14px;
   border: 1px solid var(--border-strong);
   border-radius: 999px;
-  background: rgba(7, 8, 13, 0.78);
+  background: rgba(10, 11, 13, 0.78);
   font-size: 14px;
   font-weight: 700;
 }
@@ -1197,7 +1216,7 @@ button {
 }
 
 .consent__head .ico {
-  color: var(--accent-2);
+  color: var(--accent);
 }
 
 .consent__text {
@@ -1309,7 +1328,7 @@ button {
 }
 
 .sheet::backdrop {
-  background: rgba(3, 4, 8, 0.72);
+  background: rgba(5, 6, 7, 0.72);
   -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
 }
