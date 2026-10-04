@@ -239,7 +239,7 @@ window.VADE_CONFIG = {
   tracking: {
     ga4: "G-3D5BRPD5SB",  // Google Analytics 4, вигляд: "G-XXXXXXXXXX"
     gtm: "",              // Google Tag Manager, вигляд: "GTM-XXXXXXX"
-    metaPixel: "",        // Meta Pixel (Facebook/Instagram), вигляд: "123456789012345"
+    metaPixel: "1135138612181491", // Meta Pixel (Facebook/Instagram), вигляд: "123456789012345"
     tiktokPixel: "",      // TikTok Pixel, вигляд: "CXXXXXXXXXXXXXXXXXXX"
     clarity: "",          // Microsoft Clarity (теплові карти й записи сесій), вигляд: "abcdefghij"
     consentRequired: true, // банер cookies. Для ЄС/Польщі обов'язковий, вимикати лише свідомо

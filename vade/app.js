@@ -397,7 +397,7 @@
     language: "language_switch",
     live: "live_click",
   };
-  const META_EVENTS = { booking: "Schedule", phone: "Contact", route: "FindLocation", map: "FindLocation" };
+  const META_EVENTS = { booking: "Lead", phone: "Contact", route: "FindLocation", map: "FindLocation" };
   const TIKTOK_EVENTS = { booking: "ClickButton", phone: "Contact", social: "ClickButton", link: "ClickButton", route: "ClickButton", live: "ClickButton" };
 
   function track(type, info = {}) {
@@ -416,7 +416,8 @@
       gtag("event", "generate_lead", { event_category: "booking", event_label: "Booking Button Clicked" });
     }
     if (T.gtm) window.dataLayer.push({ event: "vade_" + name, ...params });
-    if (loaded.meta) {
+    // Натискання «Забронювати» йде в Meta як стандартна подія Lead (конверсія), див. META_EVENTS
+    if (loaded.meta && typeof window.fbq === "function") {
       if (META_EVENTS[type]) window.fbq("track", META_EVENTS[type], { content_name: info.label || name });
       else window.fbq("trackCustom", name, params);
     }
