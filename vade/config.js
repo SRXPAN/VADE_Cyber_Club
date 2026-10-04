@@ -69,7 +69,7 @@ window.VADE_CONFIG = {
   },
 
   // Головна кнопка. Онлайн-бронювання клуб поки не має, тому кнопка дзвонить у клуб.
-  // ЗАМІНИТИ, коли з'явиться онлайн-бронювання: вставте посилання в url (UTM-мітки з біо додадуться до нього самі)
+  // ЗАМІНИТИ, коли з'явиться бронювання в SENET: вставте посилання в url (UTM-мітки з біо додадуться до нього самі)
   // і змініть subtitle, напр. { pl: "Online w minutę, bez dzwonienia", en: "Online in a minute, no calls", ... }.
   booking: {
     url: "tel:+48515588475",
@@ -84,6 +84,14 @@ window.VADE_CONFIG = {
     url: "",                                       // ЗАМІНИТИ: посилання на Twitch / YouTube / Kick
     text:     { pl: "Transmisja na żywo", en: "Live stream", uk: "Пряма трансляція", ru: "Прямая трансляция" },
     subtitle: { pl: "Oglądaj teraz",      en: "Watch now",   uk: "Дивитися зараз",   ru: "Смотреть сейчас" }
+  },
+
+  // Бейдж «🟢 12 вільних ПК» у шапці. Дані бере функція Cloudflare Pages functions/api/status.js з API SENET.
+  // Поки функцію не налаштовано (або сайт відкрито не з Cloudflare), бейдж просто не показується.
+  availability: {
+    enabled: false,
+    endpoint: "/api/status",
+    refreshSeconds: 60                             // як часто оновлювати, поки сторінка відкрита
   },
 
   // Іконки соцмереж під логотипом.
@@ -181,10 +189,10 @@ window.VADE_CONFIG = {
       badge: { pl: "Hit", en: "Top pick", uk: "Хіт", ru: "Хит" },
       specs: [
         "RTX 5070",
-        { pl: "X2 Monitor 280 Hz", en: "280 Hz monitor", uk: "Монітор 280 Гц", ru: "Монитор 280 Гц" },
+        { pl: "X2 Monitor 280 Hz", en: "X2 280 Hz monitor", uk: "X2 Монітор 280 Гц", ru: "X2 Монитор 280 Гц" },
         { pl: "Słuchawki bezprzewodowe z mikrofonem HyperX Cloud III Wireless", en: "HyperX Cloud III Wireless headset with mic", uk: "Бездротові навушники з мікрофоном HyperX Cloud III Wireless", ru: "Беспроводные наушники с микрофоном HyperX Cloud III Wireless" },
         { pl: "Mysz Logitech G Pro X Superlight 2", en: "Logitech G Pro X Superlight 2 mouse", uk: "Миша Logitech G Pro X Superlight 2", ru: "Мышь Logitech G Pro X Superlight 2" },
-        { pl: "Klawiatura Logitech G412 TKL", en: "Logitech G412 TKL keyboard", uk: "Клавіатура Logitech G412 TKL", ru: "Клавиатура Logitech G412 TKL" }
+        { pl: "Klawiatura Logitech G413 TKL", en: "Logitech G413 TKL keyboard", uk: "Клавіатура Logitech G413 TKL", ru: "Клавиатура Logitech G413 TKL" }
       ]
     },
     {
@@ -313,6 +321,18 @@ window.VADE_CONFIG = {
 
     live: {
       badge: { pl: "Na żywo", en: "Live", uk: "Наживо", ru: "В эфире" }
+    },
+
+    // Бейдж вільних ПК. Форми множини: one — 1, few — 2–4, many — 5+ (для польської, української й російської)
+    availability: {
+      free: {
+        pl: { one: "{n} wolny PC",       few: "{n} wolne PC",       many: "{n} wolnych PC",     other: "{n} wolnego PC" },
+        en: { one: "{n} PC available",   other: "{n} PCs available" },
+        uk: { one: "{n} вільний ПК",     few: "{n} вільні ПК",      many: "{n} вільних ПК",     other: "{n} вільного ПК" },
+        ru: { one: "{n} свободный ПК",   few: "{n} свободных ПК",   many: "{n} свободных ПК",   other: "{n} свободного ПК" }
+      },
+      none:  { pl: "Wszystkie PC zajęte", en: "All PCs are busy", uk: "Усі ПК зайняті", ru: "Все ПК заняты" },
+      label: { pl: "Dostępność komputerów teraz", en: "PC availability right now", uk: "Наявність ПК зараз", ru: "Наличие ПК сейчас" }
     },
 
     zones: {
