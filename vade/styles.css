@@ -612,6 +612,20 @@ button {
   height: 22px;
 }
 
+/* Кнопка «Перейти на повний сайт»: така ж велика, але другим кольором, щоб не конкурувати з бронюванням */
+.cta--site {
+  background: linear-gradient(135deg, var(--accent-2) 0%, var(--accent) 100%);
+  box-shadow: 0 14px 34px -14px var(--accent-2), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.cta--site::after {
+  display: none;
+}
+
+.cta--site:hover {
+  box-shadow: 0 18px 40px -14px var(--accent-2), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
 /* Дуже вузькі телефони (iPhone SE тощо): щоб назва кнопки вміщалась в один рядок */
 @media (max-width: 359px) {
   .cta {

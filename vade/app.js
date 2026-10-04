@@ -577,6 +577,21 @@
       </a>`;
   }
 
+  function fullSiteHtml() {
+    const f = C.fullSite || {};
+    if (!f.url) return "";
+    const subtitle = t(f.subtitle);
+    return `
+      <a class="cta cta--site rise" href="${esc(f.url)}"${targetAttrs(f.url)} data-track="link" data-id="full_site" data-label="${esc(tDef(f.title))}">
+        <span class="cta__icon">${icon("globe")}</span>
+        <span class="cta__text">
+          <span class="cta__title">${esc(t(f.title))}</span>
+          ${subtitle ? `<span class="cta__sub">${esc(subtitle)}</span>` : ""}
+        </span>
+        ${icon("arrow-up-right", "cta__arrow")}
+      </a>`;
+  }
+
   function linksHtml() {
     const links = (C.links || [])
       .map((link) => {
@@ -737,7 +752,7 @@
 
   function render() {
     $("#hero").innerHTML = heroHtml();
-    $("#main").innerHTML = liveHtml() + ctaHtml() + linksHtml() + galleryHtml() + zonesHtml() + locationHtml();
+    $("#main").innerHTML = liveHtml() + ctaHtml() + linksHtml() + fullSiteHtml() + galleryHtml() + zonesHtml() + locationHtml();
     $("#footer").innerHTML = footerHtml();
     $$(".rise").forEach((el, i) => el.style.setProperty("--i", i));
     applyUtm();
