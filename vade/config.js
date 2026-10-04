@@ -237,7 +237,7 @@ window.VADE_CONFIG = {
      Вставте ID тільки тих сервісів, якими користуєтесь. Порожній рядок — сервіс не підключається.
      ВАЖЛИВО: використовуйте АБО ga4 напряму, АБО gtm (з тегом GA4 всередині GTM), щоб не рахувати двічі. */
   tracking: {
-    ga4: "",              // Google Analytics 4, вигляд: "G-XXXXXXXXXX"
+    ga4: "G-3D5BRPD5SB",  // Google Analytics 4, вигляд: "G-XXXXXXXXXX"
     gtm: "",              // Google Tag Manager, вигляд: "GTM-XXXXXXX"
     metaPixel: "",        // Meta Pixel (Facebook/Instagram), вигляд: "123456789012345"
     tiktokPixel: "",      // TikTok Pixel, вигляд: "CXXXXXXXXXXXXXXXXXXX"

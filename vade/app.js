@@ -411,6 +411,10 @@
     if (T.debug) console.info("[VADE] подія:", name, params);
 
     if (T.ga4) gtag("event", name, params);
+    // Конверсія в GA4: натискання головної кнопки бронювання — це лід
+    if (type === "booking" && T.ga4 && typeof gtag === "function") {
+      gtag("event", "generate_lead", { event_category: "booking", event_label: "Booking Button Clicked" });
+    }
     if (T.gtm) window.dataLayer.push({ event: "vade_" + name, ...params });
     if (loaded.meta) {
       if (META_EVENTS[type]) window.fbq("track", META_EVENTS[type], { content_name: info.label || name });
