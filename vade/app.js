@@ -135,6 +135,29 @@
     }
   }
 
+  // Рейтинг з одним знаком після коми за правилами мови: 5,0 / 5.0
+  function formatRating(value) {
+    try {
+      return new Intl.NumberFormat(langInfo().locale || lang, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value);
+    } catch {
+      return Number(value).toFixed(1);
+    }
+  }
+
+  // Множина за правилами мови: 1 opinia / 2 opinie / 5 opinii
+  function pluralText(path, n, vars) {
+    const forms = tr(lookup(path));
+    const values = { n: formatNumber(n), ...vars };
+    if (!isDict(forms)) return fill(forms, values);
+    let category = "other";
+    try {
+      category = new Intl.PluralRules(langInfo().locale || lang).select(n);
+    } catch {
+      /* старий браузер — лишається "other" */
+    }
+    return fill(forms[category] ?? forms.other ?? forms.many ?? Object.values(forms)[0], values);
+  }
+
   /* ================= Дані ================= */
 
   const phoneHref = contacts.phone ? "tel:" + contacts.phone.replace(/[^\d+]/g, "") : "";
@@ -388,6 +411,7 @@
     applyConsent();
     window.dataLayer.push({ event: "vade_consent_update", consent_analytics: consent.analytics, consent_marketing: consent.marketing });
     $("#consent").hidden = true;
+    updateActionBar(); // банер зник — нижня панель дій знову може з'явитись
   }
 
   // Назви подій для GA4 / GTM і відповідники стандартних подій Meta та TikTok
@@ -405,6 +429,8 @@
     gallery: "gallery_interact",
     language: "language_switch",
     live: "live_click",
+    review: "review_click",
+    faq: "faq_open",
   };
   const META_EVENTS = { booking: "Lead", phone: "Contact", route: "FindLocation", map: "FindLocation" };
   const TIKTOK_EVENTS = { booking: "ClickButton", phone: "Contact", social: "ClickButton", link: "ClickButton", route: "ClickButton", live: "ClickButton" };
@@ -530,7 +556,7 @@
   /* ================= Розмітка ================= */
 
   const section = (id, title, body) => `
-    <section class="section rise" aria-labelledby="${id}-title">
+    <section class="section rise" id="${id}" aria-labelledby="${id}-title">
       <h2 class="section__title" id="${id}-title">${esc(title)}</h2>
       ${body}
     </section>`;
@@ -545,7 +571,10 @@
         ${tagline ? `<p class="hero__tagline">${esc(tagline)}</p>` : ""}
         <div class="hero__badges">
           <p class="status" data-status hidden><span class="status__dot"></span><span data-status-text></span></p>
+          ${priceChipHtml()}
+          ${ratingChipHtml()}
         </div>
+        ${heroAddressHtml()}
         ${
           socials.length
             ? `<ul class="socials" aria-label="${esc(ui("hero.socials"))}">${socials
@@ -556,6 +585,50 @@
                 .join("")}</ul>`
             : ""
         }
+      </div>`;
+  }
+
+  // «od 5 zł/h» — найнижча ціна з зон; натиск прокручує до цін
+  function priceChipHtml() {
+    const price = priceFrom();
+    if (!price) return "";
+    const text = esc(ui("hero.priceFrom", { price: "%PRICE%" })).replace("%PRICE%", `<b>${esc(price)}</b>`);
+    return `<a class="status status--chip" href="#zones" data-track="link" data-id="price_hero" data-label="${esc(uiDef("hero.priceHint"))}" title="${esc(ui("hero.priceHint"))}">${text}</a>`;
+  }
+
+  // Рейтинг Google — лише коли відгуків достатньо (reviews.showRatingFrom), інакше 5,0 з двох виглядає непереконливо
+  function ratingChipHtml() {
+    const r = C.reviews || {};
+    if (!r.url || !r.rating || !(Number(r.count) >= Number(r.showRatingFrom ?? 15))) return "";
+    const rating = formatRating(r.rating);
+    const count = pluralText("reviews.count", Number(r.count));
+    return `<a class="status status--chip" href="${esc(r.url)}" target="_blank" rel="noopener" data-no-utm data-track="review" data-id="rating_hero" data-label="Google rating" aria-label="${esc(ui("reviews.ratingLabel", { rating }))}, ${esc(count)}">${icon("star", "star")}<b>${esc(rating)}</b><span aria-hidden="true">·</span>${esc(count)}</a>`;
+  }
+
+  // Адреса в шапці: одним натиском — маршрут у Google Maps
+  function heroAddressHtml() {
+    const street = contacts.postal?.street || contacts.address;
+    if (!street) return "";
+    return `
+      <a class="hero__address" href="${esc(routeUrl)}" target="_blank" rel="noopener" data-no-utm data-track="route" data-id="route_hero" data-label="${esc(uiDef("location.route"))}">
+        ${icon("map-pin")}<span class="hero__street">${esc(street)}</span>
+        <span class="hero__route">${icon("navigation")}${esc(ui("location.route"))}</span>
+      </a>`;
+  }
+
+  // Смужка «залізо» та ряд ігор під кнопкою бронювання
+  function kitHtml() {
+    const specs = (C.highlights || []).map((s) => t(s)).filter(Boolean);
+    const games = (C.games || []).map((g) => t(g)).filter(Boolean);
+    if (!specs.length && !games.length) return "";
+    return `
+      <div class="kit rise">
+        ${
+          specs.length
+            ? `<p class="kit__specs">${icon("monitor")}<span><span class="sr-only">${esc(ui("kit.label"))}: </span>${specs.map(esc).join('<span class="kit__sep" aria-hidden="true">·</span>')}</span></p>`
+            : ""
+        }
+        ${games.length ? `<ul class="kit__games" aria-label="${esc(ui("kit.games"))}">${games.map((g) => `<li>${esc(g)}</li>`).join("")}</ul>` : ""}
       </div>`;
   }
 
@@ -648,6 +721,9 @@
     }
   };
 
+  // Більше фото — замість крапок лічильник «3 / 12»: ряд з десятків крапок не влазить у ширину телефона
+  const MAX_DOTS = 8;
+
   function galleryHtml() {
     const items = C.gallery || [];
     if (!items.length) return "";
@@ -673,9 +749,13 @@
         ? `
         <div class="carousel__nav">
           <button class="icon-btn icon-btn--sm carousel__arrow" type="button" data-dir="-1" aria-label="${esc(ui("gallery.prev"))}">${icon("chevron-left")}</button>
-          <div class="dots">${items
-            .map((_, i) => `<button class="dot" type="button" aria-label="${esc(ui("gallery.photo", { n: i + 1 }))}" aria-current="${i === slideIndex}"></button>`)
-            .join("")}</div>
+          ${
+            total <= MAX_DOTS
+              ? `<div class="dots">${items
+                  .map((_, i) => `<button class="dot" type="button" aria-label="${esc(ui("gallery.photo", { n: i + 1 }))}" aria-current="${i === slideIndex}"></button>`)
+                  .join("")}</div>`
+              : `<span class="carousel__count" aria-hidden="true"><b data-count>${Math.min(slideIndex, total - 1) + 1}</b> / ${total}</span>`
+          }
           <button class="icon-btn icon-btn--sm carousel__arrow" type="button" data-dir="1" aria-label="${esc(ui("gallery.next"))}">${icon("chevron-right")}</button>
         </div>`
         : "";
@@ -714,6 +794,87 @@
       .join("");
     const note = t(C.zonesNote);
     return section("zones", ui("zones.title"), `<ul class="zones">${cards}</ul>${note ? `<p class="section__note">${esc(note)}</p>` : ""}`);
+  }
+
+  // Найнижча ціна серед зон: «5 zł/h» — для шапки та {priceFrom} у FAQ. Немає цін — порожньо
+  function priceFrom() {
+    const zones = (C.zones || []).filter(hasPrice).filter((z) => Number.isFinite(Number(z.price)));
+    if (!zones.length) return "";
+    const cheapest = zones.reduce((a, b) => (Number(b.price) < Number(a.price) ? b : a));
+    const currency = t(site.currency);
+    const unit = t(cheapest.unit) || ui("zones.unit");
+    return `${formatNumber(Number(cheapest.price))} ${currency ? `${currency}/${unit}` : unit}`;
+  }
+
+  // Відгуки: справжні цитати з Google і кнопка «Wystaw opinię» — так відгуки збираються швидше
+  function reviewsHtml() {
+    const r = C.reviews || {};
+    const quotes = (r.quotes || []).map((q) => ({ ...q, body: t(q.text) })).filter((q) => q.body);
+    if (!quotes.length && !r.writeUrl) return "";
+    const stars = (n) => `<span class="stars" role="img" aria-label="${esc(ui("reviews.starsLabel", { n }))}">${icon("star").repeat(Math.max(0, Math.min(5, Math.round(n))))}</span>`;
+    const cards = quotes
+      .map((q) => {
+        // Є переклад мовою сторінки — показуємо його з позначкою; інакше — оригінал мовою відгуку
+        const translated = Boolean(q.lang && q.lang !== lang && isDict(q.text) && q.text[lang]);
+        const text = translated ? q.text[lang] : isDict(q.text) && q.lang ? q.text[q.lang] ?? q.body : q.body;
+        const note = translated ? t(q.translated) : "";
+        return `
+        <figure class="review">
+          ${q.stars ? stars(q.stars) : ""}
+          <blockquote class="review__text"${!translated && q.lang ? ` lang="${esc(q.lang)}"` : ""}>${esc(text)}</blockquote>
+          <figcaption class="review__by">${esc(q.author)} · Google${note ? `<span class="review__note">${esc(note)}</span>` : ""}</figcaption>
+        </figure>`;
+      })
+      .join("");
+    const actions =
+      r.writeUrl || r.url
+        ? `
+        <div class="reviews__actions">
+          ${r.writeUrl ? `<a class="btn btn--primary" href="${esc(r.writeUrl)}" target="_blank" rel="noopener" data-no-utm data-track="review" data-id="review_write" data-label="${esc(uiDef("reviews.write"))}">${icon("star")}${esc(ui("reviews.write"))}</a>` : ""}
+          ${r.url ? `<a class="btn btn--text" href="${esc(r.url)}" target="_blank" rel="noopener" data-no-utm data-track="review" data-id="review_all" data-label="${esc(uiDef("reviews.all"))}">${esc(ui("reviews.all"))}</a>` : ""}
+        </div>
+        ${r.writeUrl ? `<p class="section__note">${esc(ui("reviews.writeHint"))}</p>` : ""}`
+        : "";
+    return section("reviews", ui("reviews.title"), `${cards ? `<div class="reviews">${cards}</div>` : ""}${actions}`);
+  }
+
+  // Часті питання: показуються лише ті, що мають відповідь. {priceFrom} без цін — питання ховається
+  const faqOpen = new Set(); // відкриті питання не згортаються при зміні мови
+  function faqItems(code) {
+    const vars = { priceFrom: priceFrom() || undefined };
+    return (C.faq || [])
+      .map((item, i) => ({ id: "faq_" + (i + 1), q: t(item.q, vars, code), a: t(item.a, vars, code) }))
+      .filter((item) => item.q && item.a && !item.a.includes("{priceFrom}"));
+  }
+
+  function faqHtml() {
+    const items = faqItems();
+    if (!items.length) return "";
+    const labels = Object.fromEntries(faqItems(DEFAULT_LANG).map((item) => [item.id, item.q]));
+    return section(
+      "faq",
+      ui("faq.title"),
+      `<div class="faq">${items
+        .map(
+          (item) => `
+        <details class="faq__item" data-faq="${item.id}" data-label="${esc(labels[item.id] || item.q)}"${faqOpen.has(item.id) ? " open" : ""}>
+          <summary>${esc(item.q)}${icon("chevron-down", "faq__chev")}</summary>
+          <p>${esc(item.a)}</p>
+        </details>`
+        )
+        .join("")}</div>`
+    );
+  }
+
+  function onFaqToggle(event) {
+    const item = event.target;
+    if (!(item instanceof HTMLDetailsElement) || !item.dataset.faq) return;
+    if (item.open) {
+      faqOpen.add(item.dataset.faq);
+      track("faq", { id: item.dataset.faq, label: item.dataset.label });
+    } else {
+      faqOpen.delete(item.dataset.faq);
+    }
   }
 
   function locationHtml() {
@@ -774,7 +935,8 @@
 
   function render() {
     $("#hero").innerHTML = heroHtml();
-    $("#main").innerHTML = liveHtml() + ctaHtml() + linksHtml() + fullSiteHtml() + galleryHtml() + zonesHtml() + locationHtml();
+    $("#main").innerHTML =
+      liveHtml() + ctaHtml() + kitHtml() + linksHtml() + fullSiteHtml() + galleryHtml() + zonesHtml() + reviewsHtml() + locationHtml() + faqHtml();
     $("#footer").innerHTML = footerHtml();
     $$(".rise").forEach((el, i) => el.style.setProperty("--i", i));
     applyUtm();
@@ -812,6 +974,7 @@
     const rail = $(".carousel__rail", root);
     const slides = Array.from(rail.children);
     const dots = $$(".dot", root);
+    const counter = $("[data-count]", root);
     if (slideIndex >= slides.length) slideIndex = 0;
     let paused = false;
     let visible = true;
@@ -848,6 +1011,7 @@
       });
       slideIndex = best;
       dots.forEach((dot, i) => dot.setAttribute("aria-current", String(i === best)));
+      if (counter) counter.textContent = String(best + 1);
       fitHeight();
     };
 
@@ -956,7 +1120,12 @@
   const IMGUR_HOSTS = ["imgur.com", "www.imgur.com", "m.imgur.com", "i.imgur.com"];
   const IMGUR_FILE = /^[A-Za-z0-9]{5,10}(\.(jpe?g|png|gif|gifv|webp|mp4))?$/i; // ID Imgur — лише латиниця й цифри
 
+  // Файли з цього ж сайту — лише фото чи відео за розширенням
+  const MEDIA_FILE = /\.(jpe?g|png|gif|webp|avif|mp4|webm|mov)$/i;
+
   function normalizeMediaUrl(raw, isVideoType) {
+    // Порожня клітинка без цієї перевірки перетворювалась на адресу самого сайту і ставала порожнім слайдом
+    if (typeof raw !== "string" || !raw.trim()) return "";
     let url;
     try {
       url = new URL(raw.trim(), location.href); // відносний шлях (assets/foto/…) — від адреси сайту
@@ -964,7 +1133,7 @@
       return "";
     }
     if (url.protocol !== "https:" && url.protocol !== "http:") return "";
-    if (url.origin === location.origin) return url.href;
+    if (url.origin === location.origin) return MEDIA_FILE.test(url.pathname) ? url.href : "";
     if (!IMGUR_HOSTS.includes(url.hostname.toLowerCase())) return "";
 
     const [id, ...rest] = url.pathname.split("/").filter(Boolean);
@@ -982,10 +1151,16 @@
       if (!res.ok) throw new Error("HTTP " + res.status);
       const items = parseCsv(await res.text())
         .slice(1)
-        .map(([url = "", mediaType = "", caption = ""]) => {
+        .map(([url = "", mediaType = "", ...captions]) => {
           const isVideoType = /відео|video/i.test(mediaType);
           const item = { src: normalizeMediaUrl(url, isVideoType), isVideo: isVideoType };
-          if (caption.trim()) item.caption = caption.trim();
+          // Підписи: C, D, E, F — мовами в порядку кнопок (PL, UA, EN, RU); бракує мови — береться основна
+          const caption = {};
+          LANGS.forEach((l, i) => {
+            const text = (captions[i] || "").trim();
+            if (text) caption[l.code] = text;
+          });
+          if (Object.keys(caption).length) item.caption = caption;
           return item;
         })
         .filter((item) => item.src);
@@ -1185,6 +1360,75 @@
     });
   }
 
+  /* ================= Панель дій унизу (телефон) ================= */
+
+  // «Trasa» і «Zarezerwuj» завжди під пальцем. Панель з'являється, коли головна кнопка бронювання
+  // прокрутилась за екран, і ховається, поки видно банер cookies або кнопки в блоці «Godziny i adres».
+  // Окрема кнопка «Zadzwoń» з'являється, лише коли бронювання — не дзвінок (інакше дві однакові кнопки).
+  const actionBarState = { ctaVisible: true, actionsVisible: false };
+  let actionBarObserver = null;
+
+  function renderActionBar() {
+    const bar = $("#actionBar");
+    if (!bar) return;
+    const b = C.booking || {};
+    const buttons = [];
+    if (mapsQuery) {
+      buttons.push(
+        `<a class="actionbar__btn" href="${esc(routeUrl)}" target="_blank" rel="noopener" data-no-utm data-track="route" data-id="route_bar" data-label="${esc(uiDef("location.route"))}">${icon("navigation")}<span>${esc(ui("location.route"))}</span></a>`
+      );
+    }
+    if (phoneHref && b.url !== phoneHref) {
+      buttons.push(
+        `<a class="actionbar__btn" href="${esc(phoneHref)}" data-track="phone" data-id="phone_bar" data-label="${esc(uiDef("location.call"))}">${icon("phone")}<span>${esc(ui("location.call"))}</span></a>`
+      );
+    }
+    if (b.url) {
+      buttons.push(
+        `<a class="actionbar__btn actionbar__btn--primary" href="${esc(b.url)}"${targetAttrs(b.url)} data-track="booking" data-id="booking_bar" data-label="${esc(tDef(b.title))}">${icon(/^tel:/i.test(b.url) ? "phone" : "calendar-check")}<span>${esc(t(b.title))}</span></a>`
+      );
+    }
+    bar.innerHTML = buttons.join("");
+    bar.setAttribute("aria-label", ui("actionBar.label"));
+    bar.hidden = !buttons.length;
+    document.body.classList.toggle("with-actionbar", buttons.length > 0);
+    applyUtm(bar);
+    watchActionBar();
+    updateActionBar();
+  }
+
+  function updateActionBar() {
+    const bar = $("#actionBar");
+    if (!bar || bar.hidden) return;
+    const consentOpen = !($("#consent")?.hidden ?? true);
+    const show = !actionBarState.ctaVisible && !actionBarState.actionsVisible && !consentOpen;
+    bar.classList.toggle("is-visible", show);
+    bar.inert = !show; // прихована панель не ловить фокус клавіатури
+    document.body.classList.toggle("actionbar-shown", show);
+  }
+
+  // Після кожного рендеру кнопки нові — стежимо за ними заново
+  function watchActionBar() {
+    actionBarObserver?.disconnect();
+    const cta = $(".cta");
+    const actions = $(".card__actions");
+    actionBarState.ctaVisible = Boolean(cta);
+    actionBarState.actionsVisible = false;
+    if (!("IntersectionObserver" in window)) {
+      actionBarState.ctaVisible = false;
+      return;
+    }
+    actionBarObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.target === cta) actionBarState.ctaVisible = entry.isIntersecting;
+        if (entry.target === actions) actionBarState.actionsVisible = entry.isIntersecting;
+      });
+      updateActionBar();
+    });
+    if (cta) actionBarObserver.observe(cta);
+    if (actions) actionBarObserver.observe(actions);
+  }
+
   /* ================= Банер cookies ================= */
 
   // draft — ще не збережені перемикачі (щоб зміна мови їх не скидала)
@@ -1195,6 +1439,20 @@
       tools.length
         ? `<label class="switch-row"><span><b>${esc(title)}</b><small>${esc(tools.join(", "))}</small></span><input class="switch" type="checkbox" name="${name}"${isOn(name) ? " checked" : ""}></label>`
         : "";
+
+    // Компактний вигляд: один рядок і дві однаково помітні кнопки — відмовитись так само легко, як погодитись
+    box.classList.toggle("consent--compact", !showPrefs);
+    if (!showPrefs) {
+      box.innerHTML = `
+        <p class="consent__short">${icon("cookie")}<span>${esc(ui("consent.short"))} <button class="linklike" type="button" data-consent="prefs">${esc(ui("consent.customize"))}</button></span></p>
+        <div class="consent__actions consent__actions--equal">
+          <button class="btn btn--ghost" type="button" data-consent="necessary">${esc(ui("consent.reject"))}</button>
+          <button class="btn btn--ghost" type="button" data-consent="all">${esc(ui("consent.accept"))}</button>
+        </div>`;
+      box.hidden = false;
+      updateActionBar();
+      return;
+    }
 
     box.innerHTML = `
       <div class="consent__head">${icon("cookie")}<b>${esc(ui("consent.title"))}</b></div>
@@ -1207,9 +1465,10 @@
       <div class="consent__actions">
         <button class="btn btn--primary" type="button" data-consent="all">${esc(ui("consent.acceptAll"))}</button>
         <button class="btn btn--ghost" type="button" data-consent="necessary">${esc(ui("consent.necessaryOnly"))}</button>
-        <button class="btn btn--text" type="button" data-consent="${showPrefs ? "save" : "prefs"}">${esc(ui(showPrefs ? "consent.save" : "consent.customize"))}</button>
+        <button class="btn btn--text" type="button" data-consent="save">${esc(ui("consent.save"))}</button>
       </div>`;
     box.hidden = false;
+    updateActionBar();
   }
 
   function refreshConsent() {
@@ -1346,6 +1605,16 @@
         { "@type": "WebPage", "@id": pageUrl + "#page", url: pageUrl, name: document.title, inLanguage: langInfo().locale || lang, isPartOf: { "@id": siteId }, about: { "@id": clubId } },
       ],
     };
+    // Часті питання — ті самі, що видно на сторінці
+    const faq = faqItems();
+    if (faq.length) {
+      data["@graph"].push({
+        "@type": "FAQPage",
+        "@id": pageUrl + "#faq",
+        inLanguage: langInfo().locale || lang,
+        mainEntity: faq.map((item) => ({ "@type": "Question", name: item.q, acceptedAnswer: { "@type": "Answer", text: item.a } })),
+      });
+    }
     if (!jsonLd) {
       jsonLd = document.createElement("script");
       jsonLd.type = "application/ld+json";
@@ -1406,6 +1675,7 @@
     initCarousel();
     renderShare();
     refreshConsent();
+    renderActionBar();
     injectJsonLd();
   }
 
@@ -1450,5 +1720,6 @@
   document.addEventListener("auxclick", onTrackedClick);
   document.addEventListener("click", onCopyClick);
   $("#main").addEventListener("click", onMainClick);
+  $("#main").addEventListener("toggle", onFaqToggle, true); // «toggle» не спливає, тому ловимо на етапі захоплення
   $("#footer").addEventListener("click", onFooterClick);
 })();

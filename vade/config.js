@@ -15,13 +15,14 @@ window.VADE_CONFIG = {
   /* ---------- Мови ----------
      Як обирається мова: ?lang=en у посиланні → мова, яку відвідувач уже обрав на сайті
      (запам'ятовується в браузері) → мова браузера → default.
-     "uk" — код української мови (ISO 639-1), а на кнопці показується label "UA". */
+     "uk" — код української мови (ISO 639-1), а на кнопці показується label "UA".
+     Порядок кнопок — за розміром аудиторії клубу: польська, українська, англійська, російська. */
   languages: {
     default: "pl",
     list: [
       { code: "pl", label: "PL", name: "Polski",     locale: "pl-PL" },
-      { code: "en", label: "EN", name: "English",    locale: "en-GB" },
       { code: "uk", label: "UA", name: "Українська", locale: "uk-UA" },
+      { code: "en", label: "EN", name: "English",    locale: "en-GB" },
       { code: "ru", label: "RU", name: "Русский",    locale: "ru-RU" }
     ]
   },
@@ -76,6 +77,18 @@ window.VADE_CONFIG = {
     title:    { pl: "Zarezerwuj PC",    en: "Book a PC",        uk: "Забронювати ПК",    ru: "Забронировать ПК" },
     subtitle: { pl: "Zadzwoń: {phone}", en: "Call us: {phone}", uk: "Дзвоніть: {phone}", ru: "Звоните: {phone}" }
   },
+
+  // Смужка «залізо» одним рядком під кнопкою бронювання: геймер за секунду бачить рівень клубу.
+  // Порожній список ([]) — смужка не показується.
+  highlights: [
+    "RTX 5070",
+    { pl: "Monitory 280 Hz", en: "280 Hz monitors", uk: "Монітори 280 Гц", ru: "Мониторы 280 Гц" },
+    "HyperX · Logitech"
+  ],
+
+  // Ігри під смужкою «залізо». ЗАМІНИТИ: залиште лише ті, що справді встановлені на ПК клубу.
+  // Порожній список ([]) — ряд ігор не показується.
+  games: ["CS2", "Valorant", "Dota 2", "League of Legends", "Fortnite"],
 
   // Червона кнопка «наживо» над посиланнями. Показується ЛИШЕ коли active: true і є url.
   // Увімкніть на час стріму турніру, після стріму — поверніть false.
@@ -156,11 +169,14 @@ window.VADE_CONFIG = {
     { src: "assets/foto/hall.webp", icon: "gamepad-2", caption: { pl: "Sala gier",             en: "Gaming hall",           uk: "Ігрова зала",           ru: "Игровой зал" } },
     { src: "assets/foto/pc.webp", icon: "monitor",   caption: { pl: "Mocne PC",              en: "Powerful PCs",          uk: "Потужні ПК",            ru: "Мощные ПК" } },
     { src: "assets/foto/tournament.mp4", icon: "trophy",    caption: { pl: "E-sport i rywalizacja", en: "Esports & competition", uk: "Кіберспорт і змагання", ru: "Киберспорт и соревнования" } },
-    { src: "assets/foto/club.webp", icon: "club",   caption: { pl: "Club",       en: "Club",       uk: "Клуб",         ru: "Клуб" } }
+    { src: "assets/foto/club.webp", icon: "gamepad-2", caption: { pl: "Klub",   en: "Club",       uk: "Клуб",         ru: "Клуб" } }
   ],
 
   // Галерея з Google Таблиці (CSV). Колонка A — посилання на фото/відео (Imgur тощо),
-  // B — тип («фото» або «відео»: для звичайних посилань imgur.com/abc саме він визначає, відео це чи фото), C — підпис.
+  // B — тип («фото» або «відео»: для звичайних посилань imgur.com/abc саме він визначає, відео це чи фото),
+  // C — підпис польською, D — українською, E — англійською, F — російською (у порядку кнопок мов).
+  // Якщо якоїсь мови немає — показується підпис з колонки C. Рядки без посилання в колонці A пропускаються,
+  // тож інструкцію чи нотатки можна писати в G і далі.
   // Коли в таблиці є хоч одне посилання, її фото замінюють список gallery вище; інакше показується gallery.
   // Таблиця має бути відкрита «Усім, хто має посилання». Порожньо ("") — таблиця не використовується.
   galleryCsvUrl: "https://docs.google.com/spreadsheets/d/1JooBw8fcSRMyDTSVRKVBTN-owocGt1lloHOsiaWjEkw/export?format=csv&gid=0",
@@ -174,12 +190,12 @@ window.VADE_CONFIG = {
     {
       name: { pl: "Standard", en: "Standard", uk: "Стандарт", ru: "Стандарт" },
       price: 5,
+      // На картці — 3 головні пункти. Повний комплект: навушники HyperX Cloud III, миша HyperX Pulsefire Haste 2,
+      // клавіатура HyperX Alloy Origins Core PBT (HX Blue).
       specs: [
         "RTX 5070",
-        { pl: "Monitor 280 Hz", en: "280 Hz monitor", uk: "Монітор 280 Гц", ru: "Монитор 280 Гц" },
-        { pl: "Słuchawki przewodowe z mikrofonem HyperX Cloud III", en: "HyperX Cloud III wired headset with mic", uk: "Дротові навушники з мікрофоном HyperX Cloud III", ru: "Проводные наушники с микрофоном HyperX Cloud III" },
-        { pl: "Mysz HyperX Pulsefire Haste 2", en: "HyperX Pulsefire Haste 2 mouse", uk: "Миша HyperX Pulsefire Haste 2", ru: "Мышь HyperX Pulsefire Haste 2" },
-        { pl: "Klawiatura HyperX Alloy Origins Core PBT (HX Blue)", en: "HyperX Alloy Origins Core PBT keyboard (HX Blue)", uk: "Клавіатура HyperX Alloy Origins Core PBT (HX Blue)", ru: "Клавиатура HyperX Alloy Origins Core PBT (HX Blue)" }
+        { pl: "Monitor 280 Hz",  en: "280 Hz monitor", uk: "Монітор 280 Гц", ru: "Монитор 280 Гц" },
+        { pl: "Peryferia HyperX", en: "HyperX gear",    uk: "Девайси HyperX", ru: "Девайсы HyperX" }
       ]
     },
     {
@@ -187,12 +203,12 @@ window.VADE_CONFIG = {
       price: 10,
       featured: true,
       badge: { pl: "Hit", en: "Top pick", uk: "Хіт", ru: "Хит" },
+      // Повний комплект: бездротові навушники HyperX Cloud III Wireless, миша Logitech G Pro X Superlight 2,
+      // клавіатура Logitech G413 TKL.
       specs: [
         "RTX 5070",
-        { pl: "X2 Monitor 280 Hz", en: "X2 280 Hz monitor", uk: "X2 Монітор 280 Гц", ru: "X2 Монитор 280 Гц" },
-        { pl: "Słuchawki bezprzewodowe z mikrofonem HyperX Cloud III Wireless", en: "HyperX Cloud III Wireless headset with mic", uk: "Бездротові навушники з мікрофоном HyperX Cloud III Wireless", ru: "Беспроводные наушники с микрофоном HyperX Cloud III Wireless" },
-        { pl: "Mysz Logitech G Pro X Superlight 2", en: "Logitech G Pro X Superlight 2 mouse", uk: "Миша Logitech G Pro X Superlight 2", ru: "Мышь Logitech G Pro X Superlight 2" },
-        { pl: "Klawiatura Logitech G413 TKL", en: "Logitech G413 TKL keyboard", uk: "Клавіатура Logitech G413 TKL", ru: "Клавиатура Logitech G413 TKL" }
+        { pl: "2× monitor 280 Hz", en: "2× 280 Hz monitors", uk: "2× монітори 280 Гц", ru: "2× монитора 280 Гц" },
+        { pl: "Bezprzewodowa mysz i słuchawki", en: "Wireless mouse & headset", uk: "Бездротові миша й навушники", ru: "Беспроводные мышь и наушники" }
       ]
     },
     {
@@ -220,6 +236,78 @@ window.VADE_CONFIG = {
     uk: "Ціни за 1 годину. Про пакети годин питайте на рецепції.",
     ru: "Цены за 1 час. О пакетах часов спрашивайте на ресепшене."
   },
+
+  // Відгуки Google. Оновлюйте rating і count вручну з картки Google Maps.
+  // Рейтинг у шапці («★ 5,0 · 15 opinii») з'являється лише від showRatingFrom відгуків:
+  // 5,0 з двох відгуків виглядає непереконливо. Секція «Opinie» з цитатами й кнопкою «Wystaw opinię» видна завжди.
+  // writeUrl зручно надрукувати як QR-код на рецепції — так відгуки збираються найшвидше.
+  reviews: {
+    rating: 5.0,
+    count: 2,                                      // станом на 01.10.2026
+    showRatingFrom: 15,
+    url: "https://search.google.com/local/reviews?placeid=ChIJCSNm-EtbFkcRusTNGSbC7KY",
+    writeUrl: "https://search.google.com/local/writereview?placeid=ChIJCSNm-EtbFkcRusTNGSbC7KY",
+    // Справжні відгуки з Google. lang — мова оригіналу: нею відгук показується без змін, іншими — з позначкою «переклад».
+    quotes: [
+      {
+        author: "Egor",
+        stars: 5,
+        lang: "ru",
+        text: {
+          ru: "админы про лучшие , клуб очень классный всем советую очень дешево, очень хорошая атмосфера. N1 pc club in krakow",
+          pl: "Admini to profesjonaliści, najlepsi. Klub jest naprawdę świetny, polecam wszystkim. Bardzo tanio, bardzo dobra atmosfera. Klub PC nr 1 w Krakowie.",
+          en: "The admins are pros, the best. The club is really great, I recommend it to everyone. Very cheap, very good atmosphere. No. 1 PC club in Kraków.",
+          uk: "Адміни — профі, найкращі. Клуб дуже класний, усім раджу. Дуже дешево, дуже гарна атмосфера. ПК-клуб №1 у Кракові."
+        },
+        translated: { pl: "Przetłumaczono z rosyjskiego", en: "Translated from Russian", uk: "Перекладено з російської", ru: "" }
+      }
+    ]
+  },
+
+  // Часті питання. Питання з порожньою відповіддю (a: "") на сайті не показується.
+  // У відповідях можна писати {phone}, {address} і {priceFrom} (найнижча ціна з zones, напр. «5 zł/h»).
+  faq: [
+    {
+      q: { pl: "Jak zarezerwować komputer?", en: "How do I book a PC?", uk: "Як забронювати комп'ютер?", ru: "Как забронировать компьютер?" },
+      a: {
+        pl: "Zadzwoń pod numer {phone}, a zarezerwujemy dla Ciebie stanowisko.",
+        en: "Call us at {phone} and we'll reserve a station for you.",
+        uk: "Зателефонуйте за номером {phone}, і ми забронюємо для вас місце.",
+        ru: "Позвоните по номеру {phone}, и мы забронируем для вас место."
+      }
+    },
+    {
+      q: { pl: "Ile kosztuje godzina gry?", en: "How much is an hour of gaming?", uk: "Скільки коштує година гри?", ru: "Сколько стоит час игры?" },
+      a: {
+        pl: "Od {priceFrom}. Ceny wszystkich stref znajdziesz wyżej, w sekcji «Strefy i ceny».",
+        en: "From {priceFrom}. Prices for every zone are listed above under «Zones & prices».",
+        uk: "Від {priceFrom}. Ціни всіх зон — вище, у розділі «Зони та ціни».",
+        ru: "От {priceFrom}. Цены всех зон — выше, в разделе «Зоны и цены»."
+      }
+    },
+    {
+      q: { pl: "Jak do was trafić?", en: "How do I find you?", uk: "Як вас знайти?", ru: "Как вас найти?" },
+      // ЗАМІНИТИ: допишіть, як знайти вхід (з вулиці, двір, поверх, вивіска) — це найбільше допомагає новим гостям
+      a: {
+        pl: "Jesteśmy w centrum Krakowa: {address}. Przycisk «Trasa» poprowadzi Cię prosto do klubu.",
+        en: "We're in central Kraków: {address}. The «Directions» button will take you straight to the club.",
+        uk: "Ми в центрі Кракова: {address}. Кнопка «Маршрут» приведе вас прямо до клубу.",
+        ru: "Мы в центре Кракова: {address}. Кнопка «Маршрут» приведёт вас прямо в клуб."
+      }
+    },
+    {
+      q: { pl: "Jak mogę zapłacić?", en: "How can I pay?", uk: "Як можна оплатити?", ru: "Как можно оплатить?" },
+      a: ""                                        // ЗАМІНИТИ: напр. { pl: "Kartą, BLIK-iem lub gotówką.", en: "By card, BLIK or cash.", uk: "Карткою, BLIK або готівкою.", ru: "Картой, BLIK или наличными." }
+    },
+    {
+      q: { pl: "Od ilu lat można u was grać?", en: "Is there an age limit?", uk: "З якого віку можна грати?", ru: "С какого возраста можно играть?" },
+      a: ""                                        // ЗАМІНИТИ: правила клубу щодо віку
+    },
+    {
+      q: { pl: "Czy mogę przynieść własną myszkę, klawiaturę lub słuchawki?", en: "Can I bring my own mouse, keyboard or headset?", uk: "Чи можна прийти зі своєю мишею, клавіатурою чи навушниками?", ru: "Можно ли прийти со своей мышью, клавиатурой или наушниками?" },
+      a: ""                                        // ЗАМІНИТИ: правила клубу щодо своїх девайсів
+    }
+  ],
 
   // Графік з Google Maps: щодня 12:00–00:00.
   // Формат: "12:00-00:00" (через північ теж можна), "24h" — цілодобово, "closed" — вихідний
@@ -264,8 +352,40 @@ window.VADE_CONFIG = {
     copied:   { pl: "Skopiowano", en: "Copied", uk: "Скопійовано", ru: "Скопировано" },
 
     hero: {
-      logoAlt: { pl: "Logo {name}", en: "{name} logo", uk: "Логотип {name}", ru: "Логотип {name}" },
-      socials: { pl: "Media społecznościowe", en: "Social media", uk: "Соцмережі", ru: "Соцсети" }
+      logoAlt:   { pl: "Logo {name}", en: "{name} logo", uk: "Логотип {name}", ru: "Логотип {name}" },
+      socials:   { pl: "Media społecznościowe", en: "Social media", uk: "Соцмережі", ru: "Соцсети" },
+      priceFrom: { pl: "od {price}", en: "from {price}", uk: "від {price}", ru: "от {price}" },
+      priceHint: { pl: "Zobacz ceny", en: "See prices", uk: "Дивитися ціни", ru: "Смотреть цены" }
+    },
+
+    // Смужка «залізо» та ігри під кнопкою бронювання
+    kit: {
+      label: { pl: "Sprzęt",      en: "Gear",  uk: "Залізо", ru: "Железо" },
+      games: { pl: "Gry",         en: "Games", uk: "Ігри",   ru: "Игры" }
+    },
+
+    // Панель унизу екрана на телефоні
+    actionBar: {
+      label: { pl: "Szybkie akcje", en: "Quick actions", uk: "Швидкі дії", ru: "Быстрые действия" }
+    },
+
+    reviews: {
+      title:       { pl: "Opinie", en: "Reviews", uk: "Відгуки", ru: "Отзывы" },
+      count: {
+        pl: { one: "{n} opinia", few: "{n} opinie", many: "{n} opinii", other: "{n} opinii" },
+        en: { one: "{n} review", other: "{n} reviews" },
+        uk: { one: "{n} відгук", few: "{n} відгуки", many: "{n} відгуків", other: "{n} відгуку" },
+        ru: { one: "{n} отзыв", few: "{n} отзыва", many: "{n} отзывов", other: "{n} отзыва" }
+      },
+      ratingLabel: { pl: "Ocena w Google: {rating} na 5", en: "Google rating: {rating} out of 5", uk: "Рейтинг у Google: {rating} з 5", ru: "Рейтинг в Google: {rating} из 5" },
+      starsLabel:  { pl: "{n} na 5 gwiazdek", en: "{n} out of 5 stars", uk: "{n} з 5 зірок", ru: "{n} из 5 звёзд" },
+      write:       { pl: "Wystaw opinię w Google", en: "Leave a Google review", uk: "Залишити відгук у Google", ru: "Оставить отзыв в Google" },
+      writeHint:   { pl: "Twoja opinia po wizycie bardzo nam pomoże.", en: "A review after your visit helps us a lot.", uk: "Ваш відгук після візиту дуже нам допоможе.", ru: "Ваш отзыв после визита очень нам поможет." },
+      all:         { pl: "Wszystkie opinie", en: "All reviews", uk: "Усі відгуки", ru: "Все отзывы" }
+    },
+
+    faq: {
+      title: { pl: "Częste pytania", en: "FAQ", uk: "Часті питання", ru: "Частые вопросы" }
     },
 
     status: {
@@ -362,6 +482,10 @@ window.VADE_CONFIG = {
     },
 
     consent: {
+      // Компактний банер: один рядок тексту і дві однаково помітні кнопки (так вимагають правила ЄС щодо згоди)
+      short:  { pl: "Używamy plików cookie do analityki i reklamy.", en: "We use cookies for analytics and ads.", uk: "Ми використовуємо cookies для аналітики й реклами.", ru: "Мы используем cookies для аналитики и рекламы." },
+      accept: { pl: "Akceptuj", en: "Accept", uk: "Прийняти", ru: "Принять" },
+      reject: { pl: "Odrzuć", en: "Reject", uk: "Відхилити", ru: "Отклонить" },
       title: { pl: "Pliki cookie", en: "Cookies", uk: "Cookies на сайті", ru: "Cookies на сайте" },
       text: {
         pl: "Używamy plików cookie, aby wiedzieć, co jest przydatne dla odwiedzających, i pokazywać reklamy klubu osobom, które mogą być nimi zainteresowane. Swój wybór możesz zmienić w każdej chwili na dole strony.",

@@ -1563,6 +1563,413 @@ button {
   text-align: center;
 }
 
+/* ---------- Службове ---------- */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+.section {
+  scroll-margin-top: 16px;
+}
+
+/* ---------- Шапка: ціна, рейтинг, адреса ---------- */
+
+/* «od 5 zł/h» і «★ 5,0 · 15 opinii» — такі самі пігулки, як статус, але натискні */
+.status--chip {
+  text-decoration: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.status--chip b {
+  color: var(--accent);
+}
+
+.status--chip .star {
+  width: 15px;
+  height: 15px;
+  color: #ffc83d;
+}
+
+@media (hover: hover) {
+  .status--chip:hover {
+    border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+}
+
+.hero__address {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  margin-top: 10px;
+  padding: 6px 6px 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(17, 19, 23, 0.82);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: border-color 0.15s;
+}
+
+.hero__address > .ico {
+  width: 17px;
+  height: 17px;
+  color: var(--accent-2);
+}
+
+.hero__route {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.hero__route .ico {
+  width: 14px;
+  height: 14px;
+}
+
+@media (hover: hover) {
+  .hero__address:hover {
+    border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+}
+
+/* ---------- Смужка «залізо» та ігри ---------- */
+
+.kit {
+  margin-top: 12px;
+  text-align: center;
+}
+
+.kit__specs {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.kit__specs > .ico {
+  width: 17px;
+  height: 17px;
+  color: var(--accent);
+}
+
+.kit__sep {
+  margin: 0 6px;
+  color: var(--accent-2);
+}
+
+.kit__games {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.kit__games li {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--muted);
+  font: 700 11px/1.4 var(--font-display);
+  letter-spacing: 0.04em;
+}
+
+/* ---------- Відгуки ---------- */
+
+.reviews {
+  display: grid;
+  gap: 10px;
+}
+
+.review {
+  margin: 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.stars {
+  display: inline-flex;
+  gap: 2px;
+  color: #ffc83d;
+}
+
+.stars .ico {
+  width: 16px;
+  height: 16px;
+}
+
+.review__text {
+  margin: 10px 0 0;
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.review__text::before {
+  content: "“";
+  margin-right: 2px;
+  color: var(--accent-2);
+  font-weight: 800;
+}
+
+.review__text::after {
+  content: "”";
+  margin-left: 2px;
+  color: var(--accent-2);
+  font-weight: 800;
+}
+
+.review__by {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.review__note {
+  display: block;
+  margin-top: 2px;
+  color: var(--faint);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.reviews__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.reviews__actions .btn--primary .ico {
+  color: inherit;
+}
+
+/* ---------- Часті питання ---------- */
+
+.faq {
+  display: grid;
+  gap: 8px;
+}
+
+.faq__item {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.faq__item summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 52px;
+  padding: 12px 14px 12px 16px;
+  font-size: 15px;
+  font-weight: 700;
+  list-style: none;
+  cursor: pointer;
+}
+
+.faq__item summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq__chev {
+  width: 18px;
+  height: 18px;
+  color: var(--accent);
+  transition: transform 0.2s;
+}
+
+.faq__item[open] .faq__chev {
+  transform: rotate(180deg);
+}
+
+.faq__item[open] {
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.faq__item p {
+  margin: 0;
+  padding: 0 16px 14px;
+  color: var(--muted);
+  font-size: 14.5px;
+}
+
+/* ---------- Лічильник галереї «3 / 12» (коли фото багато) ---------- */
+
+.carousel__count {
+  min-width: 64px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.carousel__count b {
+  color: var(--text);
+}
+
+/* ---------- Панель дій унизу екрана (телефон) ---------- */
+
+.actionbar {
+  position: fixed;
+  right: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  left: 12px;
+  z-index: 40;
+  display: flex;
+  gap: 8px;
+  max-width: 456px;
+  margin: 0 auto;
+  padding: 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 18px;
+  background: rgba(17, 19, 23, 0.92);
+  box-shadow: 0 18px 44px -12px rgba(0, 0, 0, 0.85);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(calc(100% + 24px));
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s, visibility 0s 0.25s;
+}
+
+.actionbar.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s;
+}
+
+.actionbar__btn {
+  display: inline-flex;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 48px;
+  padding: 0 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.actionbar__btn span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.actionbar__btn .ico {
+  width: 18px;
+  height: 18px;
+}
+
+.actionbar__btn--primary {
+  flex-grow: 1.4;
+  border-color: transparent;
+  background: var(--accent);
+  box-shadow: 0 8px 22px -10px var(--accent);
+  color: var(--on-accent);
+}
+
+.actionbar__btn:active {
+  transform: scale(0.97);
+}
+
+/* Місце внизу сторінки, щоб панель не закривала підвал, і сповіщення — над панеллю */
+@media (max-width: 700px) {
+  .with-actionbar .page {
+    padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  }
+
+  .actionbar-shown .toast {
+    bottom: calc(96px + env(safe-area-inset-bottom));
+  }
+}
+
+/* На комп'ютері все й так на екрані — панель не потрібна */
+@media (min-width: 701px) {
+  .actionbar {
+    display: none;
+  }
+}
+
+/* ---------- Компактний банер cookies ---------- */
+
+.consent--compact {
+  padding: 12px 12px 12px 14px;
+}
+
+.consent__short {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+
+.consent__short > .ico {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  color: var(--accent);
+}
+
+.consent__short .linklike {
+  padding: 0;
+  font-size: 13.5px;
+}
+
+/* «Odrzuć» і «Akceptuj» — однакові за розміром і виглядом */
+.consent__actions--equal .btn {
+  flex: 1 1 0;
+  min-height: 40px;
+}
+
 /* ---------- «Скло» на широких екранах ---------- */
 
 /* Картки ледь прозорі й розмивають фон за собою: сцена видна, а текст лишається чітким.
@@ -1571,7 +1978,9 @@ button {
   @supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
     .link,
     .zone:not(.zone--featured),
-    .card {
+    .card,
+    .review,
+    .faq__item {
       background-color: rgba(17, 19, 23, 0.66);
       -webkit-backdrop-filter: blur(14px) saturate(1.2);
       backdrop-filter: blur(14px) saturate(1.2);
