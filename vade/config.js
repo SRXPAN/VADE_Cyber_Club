@@ -99,12 +99,15 @@ window.VADE_CONFIG = {
     subtitle: { pl: "Oglądaj teraz",      en: "Watch now",   uk: "Дивитися зараз",   ru: "Смотреть сейчас" }
   },
 
-  // Бейдж «🟢 12 вільних ПК» у шапці. Дані бере функція Cloudflare Pages functions/api/status.js з API SENET.
-  // Поки функцію не налаштовано (або сайт відкрито не з Cloudflare), бейдж просто не показується.
+  // Вільні / зайняті ПК: бейдж «🟢 12 wolnych PC» у шапці й секція з усіма ПК по зонах.
+  // Дані надсилає агент з кожного комп'ютера (папка agent/ у репозиторії) на functions/api/report.js,
+  // а сайт читає їх з /api/status. Поки жоден ПК не звітував (або сайт відкрито не з Cloudflare) — нічого не показується.
+  // Назва зони з агента (Zone у agent.config.psd1) перекладається, якщо збігається з назвою зони в zones нижче.
   availability: {
-    enabled: false,
+    enabled: true,
     endpoint: "/api/status",
-    refreshSeconds: 60                             // як часто оновлювати, поки сторінка відкрита
+    refreshSeconds: 30,                            // як часто оновлювати, поки сторінка відкрита
+    showGrid: true                                 // false — лише бейдж у шапці, без секції з усіма ПК
   },
 
   // Іконки соцмереж під логотипом.
@@ -445,7 +448,7 @@ window.VADE_CONFIG = {
       badge: { pl: "Na żywo", en: "Live", uk: "Наживо", ru: "В эфире" }
     },
 
-    // Бейдж вільних ПК. Форми множини: one — 1, few — 2–4, many — 5+ (для польської, української й російської)
+    // Вільні ПК. Форми множини: one — 1, few — 2–4, many — 5+ (для польської, української й російської)
     availability: {
       free: {
         pl: { one: "{n} wolny PC",       few: "{n} wolne PC",       many: "{n} wolnych PC",     other: "{n} wolnego PC" },
@@ -454,7 +457,19 @@ window.VADE_CONFIG = {
         ru: { one: "{n} свободный ПК",   few: "{n} свободных ПК",   many: "{n} свободных ПК",   other: "{n} свободного ПК" }
       },
       none:  { pl: "Wszystkie PC zajęte", en: "All PCs are busy", uk: "Усі ПК зайняті", ru: "Все ПК заняты" },
-      label: { pl: "Dostępność komputerów teraz", en: "PC availability right now", uk: "Наявність ПК зараз", ru: "Наличие ПК сейчас" }
+      label: { pl: "Dostępność komputerów teraz", en: "PC availability right now", uk: "Наявність ПК зараз", ru: "Наличие ПК сейчас" },
+      title: { pl: "Wolne komputery teraz", en: "Free PCs right now", uk: "Вільні ПК зараз", ru: "Свободные ПК сейчас" },
+      state: {
+        free:    { pl: "Wolny",    en: "Free",    uk: "Вільний",  ru: "Свободен" },
+        busy:    { pl: "Zajęty",   en: "Busy",    uk: "Зайнятий", ru: "Занят" },
+        offline: { pl: "Wyłączony", en: "Off",    uk: "Вимкнено", ru: "Выключен" }
+      },
+      since: {
+        free: { pl: "wolny od {time}",  en: "free since {time}", uk: "вільний з {time}",  ru: "свободен с {time}" },
+        busy: { pl: "zajęty od {time}", en: "busy since {time}", uk: "зайнятий з {time}", ru: "занят с {time}" }
+      },
+      updated:   { pl: "Stan na {time}", en: "As of {time}", uk: "Станом на {time}", ru: "По состоянию на {time}" },
+      otherZone: { pl: "Pozostałe", en: "Other", uk: "Інші", ru: "Другие" }
     },
 
     zones: {

@@ -4,3 +4,15 @@
 name = "vade-cyber-club"
 pages_build_output_dir = "vade"
 compatibility_date = "2026-09-01"
+
+# ── Статуси ПК (агент на комп'ютерах → /api/report → сайт /api/status) ──
+# База Cloudflare D1 зберігає стан кожного ПК. Створити один раз:
+#   npx wrangler d1 create vade-pcs
+# Команда надрукує database_id — вставте його нижче й розкоментуйте три рядки.
+# Секрет для агентів (той самий рядок, що Token в agent\agent.config.psd1):
+#   npx wrangler pages secret put AGENT_TOKEN
+# Детально: agent/README.md
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "vade-pcs"
+# database_id = "ВСТАВТЕ_СЮДИ_ID"

@@ -571,6 +571,7 @@
         ${tagline ? `<p class="hero__tagline">${esc(tagline)}</p>` : ""}
         <div class="hero__badges">
           <p class="status" data-status hidden><span class="status__dot"></span><span data-status-text></span></p>
+          ${availChipHtml()}
           ${priceChipHtml()}
           ${ratingChipHtml()}
         </div>
@@ -933,10 +934,125 @@
       ${cookieBtn || privacy ? `<p class="footer__links">${cookieBtn}${privacy}</p>` : ""}`;
   }
 
+  /* ================= Вільні ПК (агент на комп'ютерах → /api/status) ================= */
+
+  // Дані приходять з functions/api/status.js. Поки їх немає (функцію не налаштовано, сайт відкрито
+  // не з Cloudflare, жоден ПК ще не звітував) — бейдж і секція просто не показуються.
+  const AV = C.availability || {};
+  let pcData = null;
+
+  const pcsOnline = () => (pcData ? pcData.pcs.filter((pc) => pc.state !== "offline") : []);
+
+  function availChipHtml() {
+    if (!pcData || !pcsOnline().length) return `<a class="status status--chip avail" data-avail hidden></a>`;
+    const free = pcData.free;
+    const text = free > 0 ? pluralText("availability.free", free) : ui("availability.none");
+    const n = esc(formatNumber(free));
+    const html = free > 0 ? esc(text).replace(n, `<b>${n}</b>`) : esc(text);
+    const href = AV.showGrid === false ? "" : ' href="#pcs"';
+    return `<a class="status status--chip avail" data-avail data-state="${free > 0 ? "open" : "closed"}"${href} data-track="link" data-id="pcs_hero" data-label="${esc(uiDef("availability.label"))}" title="${esc(ui("availability.label"))}"><span class="status__dot"></span><span>${html}</span></a>`;
+  }
+
+  function clock(sec) {
+    try {
+      return new Intl.DateTimeFormat(langInfo().locale || lang, { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Warsaw" }).format(new Date(sec * 1000));
+    } catch {
+      const d = new Date(sec * 1000);
+      return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+    }
+  }
+
+  // Назву зони з агента (напр. "Standard") показуємо перекладом із zones у config.js, якщо така зона там є
+  function zoneTitle(zone) {
+    if (!zone) return "";
+    const key = zone.trim().toLowerCase();
+    const match = (C.zones || []).find((z) => [tDef(z.name), t(z.name), z.id].some((v) => v && String(v).trim().toLowerCase() === key));
+    return match ? t(match.name) : zone;
+  }
+
+  function pcsHtml() {
+    if (AV.showGrid === false || !pcData || !pcsOnline().length) return "";
+    const groups = [];
+    pcData.pcs.forEach((pc) => {
+      const key = pc.zone || "";
+      let group = groups.find((g) => g.key === key);
+      if (!group) groups.push((group = { key, pcs: [] }));
+      group.pcs.push(pc);
+    });
+    const tile = (pc) => {
+      const stateText = ui(`availability.state.${pc.state}`);
+      const sinceText = pc.state !== "offline" && pc.since ? ui(`availability.since.${pc.state}`, { time: clock(pc.since) }) : "";
+      return `<li class="pc pc--${esc(pc.state)}" title="${esc([pc.name, stateText, sinceText].filter(Boolean).join(" · "))}">
+          <span class="pc__name">${esc(pc.name)}</span>
+          <span class="pc__state">${esc(stateText)}</span>
+        </li>`;
+    };
+    const body = groups
+      .map((g) => {
+        const free = g.pcs.filter((pc) => pc.state === "free").length;
+        const head = groups.length > 1 || g.key
+          ? `<h3 class="pcs__zone">${esc(zoneTitle(g.key) || ui("availability.otherZone"))}<span>${esc(free)}/${esc(g.pcs.filter((pc) => pc.state !== "offline").length)}</span></h3>`
+          : "";
+        return `<div class="pcs__group">${head}<ul class="pcs">${g.pcs.map(tile).join("")}</ul></div>`;
+      })
+      .join("");
+    const legend = ["free", "busy", "offline"]
+      .map((s) => `<span class="pcs__key pc--${s}"><i aria-hidden="true"></i>${esc(ui(`availability.state.${s}`))}</span>`)
+      .join("");
+    const note = `<p class="section__note pcs__note"><span class="pcs__legend">${legend}</span><span>${esc(ui("availability.updated", { time: clock(pcData.updated) }))}</span></p>`;
+    return section("pcs", ui("availability.title"), body + note);
+  }
+
+  const pcsSlotHtml = () => `<div id="pcsSlot">${pcsHtml()}</div>`;
+
+  // Оновлюємо лише бейдж і секцію — решта сторінки (галерея, відкриті FAQ) не перемальовується
+  function renderAvailability() {
+    const chip = $("[data-avail]");
+    if (chip) chip.outerHTML = availChipHtml();
+    const slot = $("#pcsSlot");
+    if (slot) {
+      const html = pcsHtml();
+      // Секція з'являється з анімацією лише першого разу, далі тихо оновлюється
+      if (slot.innerHTML && html) slot.classList.add("no-anim");
+      slot.innerHTML = html;
+    }
+  }
+
+  async function fetchAvailability() {
+    if (!AV.enabled || !AV.endpoint || document.hidden) return;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    try {
+      const res = await fetch(AV.endpoint, { cache: "no-store", signal: controller.signal, headers: { Accept: "application/json" } });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (!data || !Array.isArray(data.pcs)) throw new Error("bad data");
+      pcData = data;
+    } catch (err) {
+      if (C.debug) console.warn("[VADE] /api/status:", err);
+      // Поки немає зв'язку, показуємо останні дані не довше 5 хвилин, потім ховаємо
+      if (pcData && Date.now() / 1000 - pcData.updated > 300) pcData = null;
+    } finally {
+      clearTimeout(timer);
+    }
+    renderAvailability();
+  }
+
+  function initAvailability() {
+    if (!AV.enabled || !AV.endpoint) return;
+    fetchAvailability();
+    const every = Math.max(15, Number(AV.refreshSeconds) || 60) * 1000;
+    setInterval(fetchAvailability, every);
+    // Повернулись на вкладку — одразу свіжі дані, а не через хвилину
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) fetchAvailability();
+    });
+  }
+
   function render() {
     $("#hero").innerHTML = heroHtml();
     $("#main").innerHTML =
-      liveHtml() + ctaHtml() + kitHtml() + linksHtml() + fullSiteHtml() + galleryHtml() + zonesHtml() + reviewsHtml() + locationHtml() + faqHtml();
+      liveHtml() + ctaHtml() + kitHtml() + pcsSlotHtml() + linksHtml() + fullSiteHtml() + galleryHtml() + zonesHtml() + reviewsHtml() + locationHtml() + faqHtml();
     $("#footer").innerHTML = footerHtml();
     $$(".rise").forEach((el, i) => el.style.setProperty("--i", i));
     applyUtm();
@@ -1713,6 +1829,7 @@
     document.documentElement.classList.add("no-anim");
     applyLanguage();
   });
+  initAvailability();
   registerServiceWorker();
   setInterval(renderStatus, 60 * 1000); // статус «Otwarte / Zamknięte» оновлюється щохвилини
 
