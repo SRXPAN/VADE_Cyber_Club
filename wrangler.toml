@@ -12,7 +12,7 @@ compatibility_date = "2026-09-01"
 # Секрет для агентів (той самий рядок, що Token в agent\agent.config.psd1):
 #   npx wrangler pages secret put AGENT_TOKEN
 # Детально: agent/README.md
-# [[d1_databases]]
-# binding = "DB"
-# database_name = "vade-pcs"
-# database_id = "ВСТАВТЕ_СЮДИ_ID"
+[[d1_databases]]
+binding = "DB"
+database_name = "vade-pcs"
+database_id = "b0d312fe-8b9b-4e8f-a97f-c8a2fe2875d2"
