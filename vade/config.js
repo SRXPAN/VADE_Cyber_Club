@@ -185,14 +185,26 @@ window.VADE_CONFIG = {
   galleryCsvUrl: "https://docs.google.com/spreadsheets/d/1JooBw8fcSRMyDTSVRKVBTN-owocGt1lloHOsiaWjEkw/export?format=csv&gid=0",
 
   // Зони та ціни.
-  // ЗАМІНИТИ: реальні ціни та характеристики. Нижче — лише шаблон: клуб ще не публікував цін.
-  // Зона без ціни (price: "") на сайті не показується, а поки жодна зона не має ціни — уся секція прихована.
+  // Ціни — за чинним цінником клубу (за 1 годину, у PLN).
+  // Зона без ціни (price: "" і без rates) на сайті не показується, а поки жодна зона не має ціни — уся секція прихована.
   // Ціна — число, напр. price: 12 або 12.5 (кома чи крапка підставиться за мовою).
+  // Якщо ціна залежить від дня тижня — замість price впишіть rates: рядки «дні + години + ціна».
   // unit — одиниця часу; якщо не вказати, буде «h / год / час» з ui.zones.unit.
   zones: [
     {
       name: { pl: "Standard", en: "Standard", uk: "Стандарт", ru: "Стандарт" },
-      price: 5,
+      rates: [
+        {
+          days:  { pl: "Pn – Czw", en: "Mon – Thu", uk: "Пн – Чт", ru: "Пн – Чт" },
+          hours: { pl: "pn 06:00 → czw 24:00", en: "Mon 06:00 → Thu 24:00", uk: "пн 06:00 → чт 24:00", ru: "пн 06:00 → чт 24:00" },
+          price: 7
+        },
+        {
+          days:  { pl: "Pt – Nd", en: "Fri – Sun", uk: "Пт – Нд", ru: "Пт – Вс" },
+          hours: { pl: "pt 00:00 → pn 06:00", en: "Fri 00:00 → Mon 06:00", uk: "пт 00:00 → пн 06:00", ru: "пт 00:00 → пн 06:00" },
+          price: 10
+        }
+      ],
       // На картці — 3 головні пункти. Повний комплект: навушники HyperX Cloud III, миша HyperX Pulsefire Haste 2,
       // клавіатура HyperX Alloy Origins Core PBT (HX Blue).
       specs: [
@@ -203,7 +215,18 @@ window.VADE_CONFIG = {
     },
     {
       name: { pl: "Streamer", en: "Streamer", uk: "Стрімерська", ru: "Стримерская" },
-      price: 10,
+      rates: [
+        {
+          days:  { pl: "Pn – Czw", en: "Mon – Thu", uk: "Пн – Чт", ru: "Пн – Чт" },
+          hours: { pl: "pn 06:00 → czw 24:00", en: "Mon 06:00 → Thu 24:00", uk: "пн 06:00 → чт 24:00", ru: "пн 06:00 → чт 24:00" },
+          price: 10
+        },
+        {
+          days:  { pl: "Pt – Nd", en: "Fri – Sun", uk: "Пт – Нд", ru: "Пт – Вс" },
+          hours: { pl: "pt 00:00 → pn 06:00", en: "Fri 00:00 → Mon 06:00", uk: "пт 00:00 → пн 06:00", ru: "пт 00:00 → пн 06:00" },
+          price: 13
+        }
+      ],
       featured: true,
       badge: { pl: "Hit", en: "Top pick", uk: "Хіт", ru: "Хит" },
       // Повний комплект: бездротові навушники HyperX Cloud III Wireless, миша Logitech G Pro X Superlight 2,
@@ -233,11 +256,23 @@ window.VADE_CONFIG = {
       ]
     }
   ],
+  // Пакети — широкі картки під зонами. Пакет без ціни (price: "") не показується.
+  // unit — за що ціна («pakiet»); details — що входить; hours — коли діє; bonus — подарунок у комплекті (можна "").
+  packages: [
+    {
+      name:    { pl: "Pakiet nocny", en: "Night package", uk: "Нічний пакет", ru: "Ночной пакет" },
+      price:   55,
+      unit:    { pl: "pakiet", en: "package", uk: "пакет", ru: "пакет" },
+      details: { pl: "6 godzin gry", en: "6 hours of play", uk: "6 годин гри", ru: "6 часов игры" },
+      hours:   { pl: "pt 00:00 → pn 06:00", en: "Fri 00:00 → Mon 06:00", uk: "пт 00:00 → пн 06:00", ru: "пт 00:00 → пн 06:00" },
+      bonus:   { pl: "+ Monster Energy w zestawie", en: "+ Monster Energy included", uk: "+ Monster Energy у комплекті", ru: "+ Monster Energy в комплекте" }
+    }
+  ],
   zonesNote: {
-    pl: "Ceny za 1 godzinę. O pakiety godzinowe zapytaj na miejscu.",
-    en: "Prices per hour. Ask at the club about hour packages.",
-    uk: "Ціни за 1 годину. Про пакети годин питайте на рецепції.",
-    ru: "Цены за 1 час. О пакетах часов спрашивайте на ресепшене."
+    pl: "Ceny za 1 godzinę, wszystkie ceny w PLN.",
+    en: "Prices per hour, all prices in PLN.",
+    uk: "Ціни за 1 годину, усі ціни в PLN.",
+    ru: "Цены за 1 час, все цены в PLN."
   },
 
   // Відгуки Google. Оновлюйте rating і count вручну з картки Google Maps.

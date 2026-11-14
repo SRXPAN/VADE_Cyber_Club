@@ -771,40 +771,88 @@
   }
 
   // Зона без ціни не показується; поки цін немає зовсім — секція прихована
-  const hasPrice = (zone) => Boolean(zone) && zone.price !== "" && zone.price != null;
+  const filled = (price) => price !== "" && price != null;
+  // Тарифи зони за днями тижня (rates) — лише рядки з ціною
+  const zoneRates = (zone) => (zone && Array.isArray(zone.rates) ? zone.rates.filter((r) => r && filled(r.price)) : []);
+  const hasPrice = (zone) => Boolean(zone) && (filled(zone.price) || zoneRates(zone).length > 0);
+  // Усі числові ціни зони: одна price або кілька з rates
+  const zonePrices = (zone) =>
+    [zone.price, ...zoneRates(zone).map((r) => r.price)].filter(filled).map(Number).filter(Number.isFinite);
 
   function zonesHtml() {
     const zones = (C.zones || []).filter(hasPrice);
-    if (!zones.length) return "";
+    const packages = (C.packages || []).filter((p) => p && filled(p.price));
+    if (!zones.length && !packages.length) return "";
     const currency = t(site.currency);
     const cards = zones
       .map((z) => {
         const badge = t(z.badge);
         const specs = (tr(z.specs) || []).map((s) => t(s)).filter(Boolean);
         const unit = t(z.unit) || ui("zones.unit");
+        const per = currency ? `${currency}/${unit}` : unit;
+        const rates = zoneRates(z);
+        const price = rates.length
+          ? `<ul class="zone__rates">${rates
+              .map((r) => {
+                const hours = t(r.hours);
+                return `
+              <li class="rate">
+                <span class="rate__days">${esc(t(r.days))}</span>
+                <span class="rate__price">${esc(formatNumber(r.price))} <small>${esc(per)}</small></span>
+                ${hours ? `<span class="rate__hours">${esc(hours)}</span>` : ""}
+              </li>`;
+              })
+              .join("")}</ul>`
+          : `<p class="zone__price">${esc(formatNumber(z.price))} <small>${esc(per)}</small></p>`;
         return `
         <li class="zone${z.featured ? " zone--featured" : ""}">
           <div class="zone__top">
             <h3 class="zone__name">${esc(t(z.name))}</h3>
             ${badge ? `<span class="zone__badge">${esc(badge)}</span>` : ""}
           </div>
-          <p class="zone__price">${esc(formatNumber(z.price))} <small>${esc(currency ? `${currency}/${unit}` : unit)}</small></p>
+          ${price}
           ${specs.length ? `<ul class="zone__specs">${specs.map((s) => `<li>${esc(s)}</li>`).join("")}</ul>` : ""}
         </li>`;
       })
       .join("");
+    // Пакети (напр. нічний): широка картка з ціною за пакет і подарунком у комплекті
+    const packs = packages
+      .map((p) => {
+        const unit = t(p.unit);
+        const details = t(p.details);
+        const hours = t(p.hours);
+        const bonus = t(p.bonus);
+        return `
+        <li class="pack">
+          <div class="pack__body">
+            <div class="pack__info">
+              <h3 class="pack__name">${icon("moon")}${esc(t(p.name))}</h3>
+              ${details ? `<p class="pack__details">${esc(details)}</p>` : ""}
+              ${hours ? `<p class="pack__hours">${esc(hours)}</p>` : ""}
+            </div>
+            <p class="pack__price">${esc(formatNumber(p.price))} <small>${esc([currency, unit].filter(Boolean).join(" / "))}</small></p>
+          </div>
+          ${bonus ? `<p class="pack__bonus">${esc(bonus)}</p>` : ""}
+        </li>`;
+      })
+      .join("");
     const note = t(C.zonesNote);
-    return section("zones", ui("zones.title"), `<ul class="zones">${cards}</ul>${note ? `<p class="section__note">${esc(note)}</p>` : ""}`);
+    return section(
+      "zones",
+      ui("zones.title"),
+      `${cards ? `<ul class="zones">${cards}</ul>` : ""}${packs ? `<ul class="packs">${packs}</ul>` : ""}${note ? `<p class="section__note">${esc(note)}</p>` : ""}`
+    );
   }
 
   // Найнижча ціна серед зон: «5 zł/h» — для шапки та {priceFrom} у FAQ. Немає цін — порожньо
   function priceFrom() {
-    const zones = (C.zones || []).filter(hasPrice).filter((z) => Number.isFinite(Number(z.price)));
+    const zones = (C.zones || []).filter((z) => hasPrice(z) && zonePrices(z).length);
     if (!zones.length) return "";
-    const cheapest = zones.reduce((a, b) => (Number(b.price) < Number(a.price) ? b : a));
+    const lowest = (z) => Math.min(...zonePrices(z));
+    const cheapest = zones.reduce((a, b) => (lowest(b) < lowest(a) ? b : a));
     const currency = t(site.currency);
     const unit = t(cheapest.unit) || ui("zones.unit");
-    return `${formatNumber(Number(cheapest.price))} ${currency ? `${currency}/${unit}` : unit}`;
+    return `${formatNumber(lowest(cheapest))} ${currency ? `${currency}/${unit}` : unit}`;
   }
 
   // Відгуки: справжні цитати з Google і кнопка «Wystaw opinię» — так відгуки збираються швидше
@@ -1654,7 +1702,7 @@
     const languages = LANGS.map((l) => l.locale || l.code);
 
     // Діапазон цін: вручну з site.priceRange або з цін зон, якщо вони вже вписані
-    const prices = (C.zones || []).filter(hasPrice).map((z) => Number(z.price)).filter(Number.isFinite);
+    const prices = (C.zones || []).filter(hasPrice).flatMap(zonePrices);
     const currency = tDef(site.currency) || site.currencyCode || "";
     const priceRange =
       tDef(site.priceRange) ||
