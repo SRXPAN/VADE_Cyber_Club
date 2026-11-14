@@ -1015,6 +1015,141 @@ button {
   font-weight: 600;
 }
 
+/* Тарифи за днями тижня: «Pn – Czw … 7 zł/h» і години дії під ними */
+.zone__rates {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rate {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: 2px 8px;
+}
+
+.rate + .rate {
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.rate__days {
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.rate__price {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.rate__price small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.rate__hours {
+  grid-column: 1 / -1;
+  color: var(--faint);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Пакети (нічний): широка картка під зонами */
+.packs {
+  display: grid;
+  gap: 10px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pack {
+  overflow: hidden;
+  border: 1px solid rgba(46, 242, 196, 0.5);
+  border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 14%, var(--surface)), var(--surface) 70%);
+}
+
+.pack__body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px;
+}
+
+.pack__info {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.pack__name {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  color: var(--accent);
+  font: 700 14.5px/1.2 var(--font-display);
+}
+
+.pack__name .ico {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+
+.pack__details {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.pack__hours {
+  margin: 0;
+  color: var(--faint);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pack__price {
+  flex: none;
+  margin: 0;
+  color: var(--accent);
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pack__price small {
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.pack__bonus {
+  margin: 0;
+  padding: 9px 16px;
+  background: var(--accent);
+  color: var(--on-accent, #04110e);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
 .zone__specs {
   display: grid;
   gap: 5px;
