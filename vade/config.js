@@ -519,8 +519,8 @@ window.VADE_CONFIG = {
         entrance:   { pl: "Wejście",  en: "Entrance", uk: "Вхід",   ru: "Вход" },
         admin:      { pl: "Admin",    en: "Admin",    uk: "Адмін",  ru: "Админ" },
         wc:         { pl: "WC",       en: "WC",       uk: "WC",     ru: "WC" },
-        standard:   { pl: "STANDARD", en: "STANDARD", uk: "STANDARD", ru: "STANDARD" },
-        stream:     { pl: "STREAM",   en: "STREAM",   uk: "STREAM",   ru: "STREAM" },
+        regular:    { pl: "Regular",  en: "Regular",  uk: "Regular", ru: "Regular" },
+        stream:     { pl: "Stream",   en: "Stream",   uk: "Stream",  ru: "Stream" },
         pcLabel:    { pl: "PC #{n}",  en: "PC #{n}",  uk: "ПК #{n}", ru: "ПК #{n}" },
         bookPc:     { pl: "Zarezerwuj PC #{n}", en: "Book PC #{n}", uk: "Забронювати ПК #{n}", ru: "Забронировать ПК #{n}" },
         scrollHint: { pl: "Przesuń mapę", en: "Swipe map", uk: "Гортайте карту", ru: "Листайте карту" }

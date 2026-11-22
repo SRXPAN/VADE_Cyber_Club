@@ -2242,16 +2242,11 @@ button {
   color: color-mix(in srgb, var(--accent-2) 72%, #fff);
 }
 
-/* Інтерактивна 2D-карта залу (SVG) */
+/* Інтерактивна 2D-карта залу (SVG без зовнішньої «коробки» — контур задають архітектурні стіни) */
 .club-map {
   position: relative;
-  overflow: hidden;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
-  background: rgba(12, 14, 19, 0.88);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.05),
-    0 18px 40px -24px rgba(0, 0, 0, 0.9);
+  padding: 2px 0;
+  background: transparent;
 }
 
 .club-map__viewport {
@@ -2281,8 +2276,8 @@ button {
 
 .club-map__hint {
   display: none;
-  margin: 0;
-  padding: 0 12px 8px;
+  margin: 4px 0 0;
+  padding: 0 4px;
   color: var(--faint);
   font-size: 11.5px;
   font-weight: 600;
@@ -2294,9 +2289,9 @@ button {
   opacity: 0.35;
 }
 
-@media (max-width: 499px) {
+@media (max-width: 480px) {
   .club-map__svg {
-    min-width: 520px;
+    min-width: 560px;
   }
 
   .club-map__hint {
@@ -2304,63 +2299,54 @@ button {
   }
 }
 
-/* Елементи інтер'єру всередині SVG */
+/* Архітектура всередині SVG */
 .map-floor {
-  fill: rgba(13, 16, 22, 0.94);
-}
-
-.map-zone-fill {
-  fill: rgba(255, 255, 255, 0.018);
-}
-
-.map-zone-fill--stream {
-  fill: rgba(224, 64, 251, 0.065);
-}
-
-.map-desk {
-  stroke: rgba(255, 255, 255, 0.12);
-  stroke-width: 2;
-  stroke-linecap: round;
+  fill: rgba(14, 18, 27, 0.88);
 }
 
 .map-wall {
   fill: none;
-  stroke: rgba(255, 255, 255, 0.24);
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+  stroke: #2a3448;
+  stroke-width: 7;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
 }
 
-.map-wall--outer {
-  stroke: rgba(255, 255, 255, 0.3);
-  stroke-width: 2.2;
+.map-wall--inner {
+  stroke: #263144;
+  stroke-width: 5.5;
 }
 
-.map-wall--stream {
-  stroke: rgba(224, 64, 251, 0.55);
+/* Тонкі акуратні рамки зон навколо груп столів */
+.map-zbox__rect {
+  fill: rgba(255, 255, 255, 0.012);
+  stroke: rgba(148, 163, 184, 0.24);
+  stroke-width: 1;
 }
 
-.map-room-box {
-  fill: rgba(255, 255, 255, 0.025);
-  stroke: rgba(255, 255, 255, 0.18);
-  stroke-width: 1.5;
+.map-zbox__mask {
+  fill: #0e121b;
 }
 
-.map-admin-bar {
-  stroke: var(--accent);
-  stroke-opacity: 0.55;
-  stroke-width: 2.4;
-  stroke-linecap: round;
+.map-zbox__label {
+  fill: rgba(148, 163, 184, 0.65);
+  font: 700 9.5px/1 var(--font-body);
+  letter-spacing: 0.06em;
 }
 
-.map-door-gap {
-  stroke: rgba(13, 16, 22, 0.96);
-  stroke-width: 3.5;
+.map-zbox--stream .map-zbox__rect {
+  fill: rgba(224, 64, 251, 0.055);
+  stroke: rgba(224, 64, 251, 0.45);
 }
 
+.map-zbox--stream .map-zbox__label {
+  fill: rgba(224, 64, 251, 0.9);
+}
+
+/* Мінімалістичні орієнтири (Вхід, Адмін + вогнегасник, WC) */
 .map-entrance-glow {
   stroke: var(--accent);
-  stroke-width: 3;
+  stroke-width: 4;
   stroke-linecap: round;
   filter: drop-shadow(0 0 6px var(--accent));
 }
@@ -2368,22 +2354,30 @@ button {
 .map-entrance-arrow {
   fill: none;
   stroke: var(--accent);
-  stroke-width: 2.2;
+  stroke-width: 3;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
 .map-landmark__ico {
   fill: none;
-  stroke: rgba(244, 245, 250, 0.56);
-  stroke-width: 1.6;
+  stroke: rgba(203, 213, 225, 0.65);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.map-extinguisher {
+  fill: rgba(255, 77, 133, 0.14);
+  stroke: rgba(255, 112, 136, 0.72);
+  stroke-width: 1.9;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
 .map-landmark__label {
-  fill: rgba(244, 245, 250, 0.55);
-  font: 700 9.5px/1 var(--font-display);
+  fill: rgba(148, 163, 184, 0.72);
+  font: 700 10px/1 var(--font-body);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -2392,36 +2386,29 @@ button {
   fill: var(--accent);
 }
 
-.map-zone-label {
-  fill: rgba(255, 255, 255, 0.22);
-  font: 700 10px/1 var(--font-display);
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+/* Неактивні слоти (8, 9, 10, 11, 20, 21, 22 — коли їх немає в API): приглушений темно-сірий монітор із ледь видимим номером, без клікабельності */
+.map-pc-inactive {
   pointer-events: none;
 }
 
-.map-zone-label--stream {
-  fill: rgba(224, 64, 251, 0.85);
-  letter-spacing: 0.16em;
+.map-pc-inactive__screen {
+  fill: rgba(22, 27, 38, 0.62);
+  stroke: rgba(100, 116, 139, 0.34);
+  stroke-width: 1.5;
 }
 
-/* Неактивні слоти (відсутні у відповіді API) — пунктирний контур без клікабельності */
-.map-pc-ghost {
-  pointer-events: none;
+.map-pc-inactive__num {
+  fill: rgba(148, 163, 184, 0.42);
+  font: 700 16px/1 var(--font-body);
+  font-variant-numeric: tabular-nums;
 }
 
-.map-pc-ghost__screen {
-  fill: rgba(255, 255, 255, 0.012);
-  stroke: rgba(255, 255, 255, 0.14);
-  stroke-width: 1.2;
-  stroke-dasharray: 3 3;
+.map-pc-inactive__neck {
+  fill: rgba(100, 116, 139, 0.24);
 }
 
-.map-pc-ghost__led {
-  fill: none;
-  stroke: rgba(255, 255, 255, 0.1);
-  stroke-width: 1;
-  stroke-dasharray: 2 2;
+.map-pc-inactive__led {
+  fill: rgba(100, 116, 139, 0.28);
 }
 
 /* Інтерактивні іконки моніторів ПК */
@@ -2439,7 +2426,7 @@ button {
 .map-pc__ring {
   fill: none;
   stroke: var(--pc-c);
-  stroke-width: 2;
+  stroke-width: 2.5;
   opacity: 0;
   transition: opacity 0.18s ease;
 }
@@ -2447,26 +2434,26 @@ button {
 .map-pc__screen {
   fill: var(--pc-fill);
   stroke: var(--pc-c);
-  stroke-width: 1.5;
+  stroke-width: 2;
   transition: fill 0.18s ease, stroke-width 0.18s ease, filter 0.18s ease;
 }
 
 .map-pc__glint {
-  stroke: rgba(255, 255, 255, 0.14);
-  stroke-width: 1.2;
+  stroke: rgba(255, 255, 255, 0.16);
+  stroke-width: 1.4;
   stroke-linecap: round;
   pointer-events: none;
 }
 
 .map-pc__num {
   fill: var(--text);
-  font: 800 12.5px/1 var(--font-display);
+  font: 800 17px/1 var(--font-body);
   font-variant-numeric: tabular-nums;
   pointer-events: none;
 }
 
 .map-pc__neck {
-  fill: rgba(255, 255, 255, 0.2);
+  fill: rgba(255, 255, 255, 0.22);
   pointer-events: none;
 }
 
@@ -2478,31 +2465,35 @@ button {
 
 .map-pc--free {
   --pc-c: var(--ok);
-  --pc-fill: rgba(46, 242, 196, 0.13);
+  --pc-fill: rgba(46, 242, 196, 0.16);
+}
+
+.map-pc--free .map-pc__screen {
+  filter: drop-shadow(0 0 6px rgba(46, 242, 196, 0.32));
 }
 
 .map-pc--free .map-pc__led {
-  filter: drop-shadow(0 0 4px rgba(46, 242, 196, 0.8));
+  filter: drop-shadow(0 0 5px rgba(46, 242, 196, 0.85));
 }
 
 .map-pc--busy {
   --pc-c: var(--bad);
-  --pc-fill: rgba(255, 77, 133, 0.12);
+  --pc-fill: rgba(255, 77, 133, 0.15);
 }
 
 .map-pc--busy .map-pc__num {
-  fill: rgba(244, 245, 250, 0.84);
+  fill: rgba(244, 245, 250, 0.88);
 }
 
 .map-pc--maintenance {
   --pc-c: #ffb547;
-  --pc-fill: rgba(255, 181, 71, 0.11);
+  --pc-fill: rgba(255, 181, 71, 0.14);
 }
 
 .map-pc--offline {
-  --pc-c: #525864;
-  --pc-fill: rgba(24, 27, 34, 0.72);
-  opacity: 0.58;
+  --pc-c: #525b6c;
+  --pc-fill: rgba(22, 27, 38, 0.72);
+  opacity: 0.62;
 }
 
 .map-pc--offline .map-pc__num {
@@ -2511,8 +2502,8 @@ button {
 
 .map-pc:hover .map-pc__screen,
 .map-pc:focus-visible .map-pc__screen {
-  stroke-width: 2.1;
-  filter: drop-shadow(0 0 8px var(--pc-c));
+  stroke-width: 2.6;
+  filter: drop-shadow(0 0 10px var(--pc-c));
 }
 
 .map-pc:focus-visible .map-pc__ring {
@@ -2521,12 +2512,12 @@ button {
 
 .map-pc.is-selected .map-pc__ring {
   opacity: 1;
-  filter: drop-shadow(0 0 8px var(--ok));
+  filter: drop-shadow(0 0 10px var(--ok));
 }
 
 .map-pc.is-selected .map-pc__screen {
-  fill: rgba(46, 242, 196, 0.28);
-  stroke-width: 2.2;
+  fill: rgba(46, 242, 196, 0.3);
+  stroke-width: 2.8;
 }
 
 /* Плаваюча підказка (Tooltip) */
@@ -2792,10 +2783,9 @@ button {
   --c: #ffb547;
 }
 
-/* На широкому екрані плитки й карта ПК — таке саме «скло», як інші картки */
+/* На широкому екрані плитки й елементи керування — таке саме «скло», як інші картки */
 @media (min-width: 700px) {
   @supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
-    .club-map,
     .pcs__toggle,
     .pcs__zpill {
       background-color: rgba(14, 16, 22, 0.72);
