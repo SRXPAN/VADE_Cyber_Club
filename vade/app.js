@@ -988,8 +988,90 @@
   // не з Cloudflare, жоден ПК ще не звітував) — бейдж і секція просто не показуються.
   const AV = C.availability || {};
   let pcData = null;
+  let pcView = "map"; // "map" (за замовчуванням) | "list"
+  let selectedPcNum = null;
+  let tooltipPcNum = null;
 
-  const pcsOnline = () => (pcData ? pcData.pcs.filter((pc) => pc.state !== "offline") : []);
+  // Точне розташування всіх 29 місць клубу на 2D-карті (viewBox 640×390).
+  // Якщо слот (напр. 8, 9, 10, 11, 20, 21, 22) відсутній у відповіді API — малюється пунктирним контуром.
+  const CLUB_MAP_SLOTS = [
+    // Верхній центр (вертикальний ряд, Standard): 1–5 зверху вниз
+    { num: 1, x: 200, y: 38, zone: "Standard" },
+    { num: 2, x: 200, y: 76, zone: "Standard" },
+    { num: 3, x: 200, y: 114, zone: "Standard" },
+    { num: 4, x: 200, y: 152, zone: "Standard" },
+    { num: 5, x: 200, y: 190, zone: "Standard" },
+    // Нижній лівий зал, верхній ряд (Standard): 6, 7 та слоти 8, 9 праворуч
+    { num: 6, x: 38, y: 274, zone: "Standard" },
+    { num: 7, x: 79, y: 274, zone: "Standard" },
+    { num: 8, x: 120, y: 274, zone: "Standard" },
+    { num: 9, x: 161, y: 274, zone: "Standard" },
+    // Центр-низ: слоти 10, 11 ліворуч від стрім-кімнат
+    { num: 10, x: 300, y: 274, zone: "Standard" },
+    { num: 11, x: 300, y: 344, zone: "Standard" },
+    // Нижній лівий зал, нижній ряд (Standard): 12–17 зліва направо
+    { num: 12, x: 38, y: 352, zone: "Standard" },
+    { num: 13, x: 79, y: 352, zone: "Standard" },
+    { num: 14, x: 120, y: 352, zone: "Standard" },
+    { num: 15, x: 161, y: 352, zone: "Standard" },
+    { num: 16, x: 202, y: 352, zone: "Standard" },
+    { num: 17, x: 243, y: 352, zone: "Standard" },
+    // Центр (окремі кабінки, Streamer): 18 посередині, 19 під ним
+    { num: 18, x: 375, y: 248, zone: "Streamer", stream: true },
+    { num: 19, x: 375, y: 332, zone: "Streamer", stream: true },
+    // Середня права кімната (Standard): зверху 21, 22; під 21 — 20; внизу 24, 23 (зліва направо)
+    { num: 20, x: 466, y: 232, zone: "Standard" },
+    { num: 21, x: 466, y: 186, zone: "Standard" },
+    { num: 22, x: 512, y: 186, zone: "Standard" },
+    { num: 24, x: 466, y: 344, zone: "Standard" },
+    { num: 23, x: 512, y: 344, zone: "Standard" },
+    // Крайній правий вертикальний ряд (Standard): 25–29 зверху вниз
+    { num: 25, x: 594, y: 96, zone: "Standard" },
+    { num: 26, x: 594, y: 144, zone: "Standard" },
+    { num: 27, x: 594, y: 192, zone: "Standard" },
+    { num: 28, x: 594, y: 240, zone: "Standard" },
+    { num: 29, x: 594, y: 288, zone: "Standard" },
+  ];
+
+  const normPcState = (state) => {
+    const s = String(state || "").toLowerCase();
+    if (s === "occupied") return "busy";
+    if (s === "free" || s === "busy" || s === "maintenance" || s === "offline") return s;
+    return "offline";
+  };
+
+  const extractPcNum = (pc) => {
+    if (!pc) return null;
+    if (Number.isInteger(pc.pos) && pc.pos > 0) return pc.pos;
+    const m = String(pc.id || "").match(/(\d+)$/) || String(pc.name || "").match(/(\d+)/);
+    return m ? Number(m[1]) : null;
+  };
+
+  const pcsOnline = () => (pcData ? pcData.pcs.filter((pc) => normPcState(pc.state) !== "offline") : []);
+
+  function pcMapByNum() {
+    const map = new Map();
+    if (!pcData) return map;
+    pcData.pcs.forEach((pc) => {
+      const n = extractPcNum(pc);
+      if (n != null && !map.has(n)) map.set(n, { ...pc, num: n, state: normPcState(pc.state) });
+    });
+    return map;
+  }
+
+  function bookingUrlForPc(pc) {
+    const base = C.booking?.url || phoneHref;
+    if (!base) return "";
+    if (!isWeb(base)) return base;
+    try {
+      const target = new URL(base);
+      if (pc?.num && !target.searchParams.has("pc")) target.searchParams.set("pc", String(pc.num));
+      if (pc?.zone && !target.searchParams.has("zone")) target.searchParams.set("zone", pc.zone);
+      return withUtm(target.href);
+    } catch {
+      return withUtm(base);
+    }
+  }
 
   function availChipHtml() {
     if (!pcData || !pcsOnline().length) return `<a class="status status--chip avail" data-avail hidden></a>`;
@@ -1018,39 +1100,242 @@
     return match ? t(match.name) : zone;
   }
 
+  function clubMapHtml(byNum) {
+    const entranceLabel = ui("availability.map.entrance");
+    const adminLabel = ui("availability.map.admin");
+    const wcLabel = ui("availability.map.wc");
+    const standardLabel = ui("availability.map.standard");
+    const streamLabel = ui("availability.map.stream");
+
+    const stations = CLUB_MAP_SLOTS.map((slot) => {
+      const pc = byNum.get(slot.num);
+      if (!pc) {
+        return `
+          <g class="map-pc-ghost" transform="translate(${slot.x}, ${slot.y})" aria-hidden="true">
+            <rect class="map-pc-ghost__screen" x="-17" y="-13" width="34" height="21" rx="4"/>
+            <rect class="map-pc-ghost__led" x="-10" y="11" width="20" height="2.5" rx="1.25"/>
+          </g>`;
+      }
+      const state = pc.state;
+      const isSelected = selectedPcNum === slot.num && state === "free";
+      const zLabel = zoneTitle(pc.zone || slot.zone);
+      const stateText = ui(`availability.state.${state}`);
+      const pcLabel = ui("availability.map.pcLabel", { n: slot.num });
+      const aria = [pcLabel, zLabel, stateText].filter(Boolean).join(" · ");
+      const cls = `map-pc map-pc--${state}${slot.stream ? " map-pc--stream" : ""}${isSelected ? " is-selected" : ""}`;
+      return `
+        <g class="${cls}" data-pc-num="${slot.num}" transform="translate(${slot.x}, ${slot.y})" tabindex="0" role="button" aria-label="${esc(aria)}"${state === "free" ? ` aria-pressed="${isSelected}"` : ""}>
+          <rect class="map-pc__hit" x="-20" y="-17" width="40" height="35" rx="6"/>
+          <rect class="map-pc__ring" x="-21" y="-17" width="42" height="35" rx="7"/>
+          <rect class="map-pc__screen" x="-18" y="-14" width="36" height="22" rx="4.5"/>
+          <line class="map-pc__glint" x1="-13" y1="-10.5" x2="13" y2="-10.5"/>
+          <text class="map-pc__num" x="0" y="-2.5" text-anchor="middle" dominant-baseline="central">${slot.num}</text>
+          <rect class="map-pc__neck" x="-3.5" y="8" width="7" height="2.5" rx="1"/>
+          <rect class="map-pc__led" x="-12" y="11" width="24" height="3.2" rx="1.6"/>
+        </g>`;
+    }).join("");
+
+    return `
+      <div class="club-map" data-club-map>
+        <div class="club-map__viewport" data-map-viewport>
+          <svg class="club-map__svg" viewBox="0 0 640 390" role="img" aria-label="${esc(ui("availability.map.label"))}">
+            <defs>
+              <pattern id="vadeMapGrid" width="20" height="20" patternUnits="userSpaceOnUse">
+                <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.032)" stroke-width="1"/>
+              </pattern>
+              <radialGradient id="vadeMapMintGlow" cx="18%" cy="22%" r="55%">
+                <stop offset="0%" stop-color="#2ef2c4" stop-opacity="0.11"/>
+                <stop offset="100%" stop-color="#2ef2c4" stop-opacity="0"/>
+              </radialGradient>
+              <radialGradient id="vadeMapStreamGlow" cx="59%" cy="74%" r="36%">
+                <stop offset="0%" stop-color="#e040fb" stop-opacity="0.14"/>
+                <stop offset="100%" stop-color="#e040fb" stop-opacity="0"/>
+              </radialGradient>
+            </defs>
+
+            <!-- Підлога та ледь помітна сітка -->
+            <rect x="10" y="10" width="620" height="370" rx="14" class="map-floor"/>
+            <rect x="10" y="10" width="620" height="370" rx="14" fill="url(#vadeMapGrid)"/>
+            <rect x="10" y="10" width="620" height="370" rx="14" fill="url(#vadeMapMintGlow)"/>
+            <rect x="10" y="10" width="620" height="370" rx="14" fill="url(#vadeMapStreamGlow)"/>
+
+            <!-- Підсвічування зон -->
+            <rect x="14" y="234" width="252" height="142" rx="8" class="map-zone-fill"/>
+            <rect x="434" y="148" width="110" height="226" rx="8" class="map-zone-fill"/>
+            <rect x="336" y="206" width="78" height="84" rx="7" class="map-zone-fill map-zone-fill--stream"/>
+            <rect x="336" y="290" width="78" height="84" rx="7" class="map-zone-fill map-zone-fill--stream"/>
+
+            <!-- Лінії столів -->
+            <line x1="222" y1="22" x2="222" y2="208" class="map-desk"/>
+            <line x1="20" y1="252" x2="180" y2="252" class="map-desk"/>
+            <line x1="20" y1="373" x2="262" y2="373" class="map-desk"/>
+            <line x1="616" y1="78" x2="616" y2="308" class="map-desk"/>
+
+            <!-- Зовнішні стіни з прорізом входу зверху зліва -->
+            <path class="map-wall map-wall--outer" d="M 86 10 H 616 A 14 14 0 0 1 630 24 V 366 A 14 14 0 0 1 616 380 H 24 A 14 14 0 0 1 10 366 V 24 A 14 14 0 0 1 24 10 H 32"/>
+
+            <!-- Внутрішні перегородки кімнат -->
+            <!-- Стіна за верхнім рядом 1–5 -->
+            <path class="map-wall" d="M 232 10 V 216"/>
+            <!-- Перегородка нижнього лівого залу з проходом -->
+            <path class="map-wall" d="M 10 230 H 110 M 166 230 H 232"/>
+            <!-- Кабінки Stream (18, 19) -->
+            <path class="map-wall map-wall--stream" d="M 336 206 H 414 V 374 H 336 V 352 M 336 314 V 268 M 336 230 V 206 M 336 290 H 414"/>
+            <!-- Середня права кімната (20–24) -->
+            <path class="map-wall" d="M 434 148 H 470 M 508 148 H 544 V 374 H 434 V 148"/>
+
+            <!-- Орієнтир: Вхід (зверху зліва) -->
+            <g class="map-landmark map-landmark--entrance">
+              <line x1="34" y1="10" x2="84" y2="10" class="map-entrance-glow"/>
+              <path d="M 59 17 V 34 M 53 28 L 59 34 L 65 28" class="map-entrance-arrow"/>
+              <text x="59" y="50" text-anchor="middle" class="map-landmark__label map-landmark__label--accent">${esc(entranceLabel)}</text>
+            </g>
+
+            <!-- Орієнтир: Адмін / Бар (зліва посередині) -->
+            <g class="map-landmark map-landmark--admin">
+              <rect x="20" y="104" width="94" height="82" rx="10" class="map-room-box"/>
+              <line x1="114" y1="118" x2="114" y2="172" class="map-admin-bar"/>
+              <g transform="translate(67, 134)" class="map-landmark__ico">
+                <path d="M -8 4 V 1 A 8 8 0 0 1 8 1 V 4"/>
+                <rect x="-10" y="3" width="4" height="6" rx="1.5"/>
+                <rect x="6" y="3" width="4" height="6" rx="1.5"/>
+              </g>
+              <text x="67" y="164" text-anchor="middle" class="map-landmark__label">${esc(adminLabel)}</text>
+            </g>
+
+            <!-- Орієнтир: WC (по центру) -->
+            <g class="map-landmark map-landmark--wc">
+              <rect x="250" y="56" width="74" height="76" rx="8" class="map-room-box"/>
+              <line x1="276" y1="132" x2="298" y2="132" class="map-door-gap"/>
+              <g transform="translate(287, 83)" class="map-landmark__ico">
+                <circle cx="-6" cy="-5" r="2.2"/>
+                <path d="M -9 5 V 0 A 3 3 0 0 1 -3 0 V 5"/>
+                <line x1="0" y1="-7" x2="0" y2="6" stroke-opacity="0.45"/>
+                <circle cx="6" cy="-5" r="2.2"/>
+                <path d="M 3 5 L 4.5 -1 H 7.5 L 9 5"/>
+              </g>
+              <text x="287" y="111" text-anchor="middle" class="map-landmark__label">${esc(wcLabel)}</text>
+            </g>
+
+            <!-- Підписи зон -->
+            <text x="140" y="316" text-anchor="middle" class="map-zone-label">${esc(standardLabel)}</text>
+            <text x="489" y="294" text-anchor="middle" class="map-zone-label">${esc(standardLabel)}</text>
+            <text x="586" y="58" text-anchor="middle" class="map-zone-label">${esc(standardLabel)}</text>
+            <text x="375" y="193" text-anchor="middle" class="map-zone-label map-zone-label--stream">${esc(streamLabel)}</text>
+
+            <!-- Комп'ютери -->
+            <g class="map-pcs">${stations}</g>
+          </svg>
+        </div>
+        <div class="club-map__tooltip" data-map-tooltip hidden role="tooltip"></div>
+        <p class="club-map__hint" aria-hidden="true"><span>${esc(ui("availability.map.scrollHint"))}</span> →</p>
+      </div>`;
+  }
+
+  function bookBarHtml(byNum) {
+    if (selectedPcNum == null) return "";
+    const pc = byNum.get(selectedPcNum);
+    if (!pc || pc.state !== "free") return "";
+    const pcLabel = ui("availability.map.pcLabel", { n: pc.num });
+    const zLabel = zoneTitle(pc.zone);
+    const stateText = ui("availability.state.free");
+    const href = bookingUrlForPc(pc);
+    const isTel = /^tel:/i.test(href);
+    const bookText = ui("availability.map.bookPc", { n: pc.num });
+    return `
+      <div class="pcs__bookbar">
+        <div class="pcs__bookinfo">
+          <span class="pcs__bookdot" aria-hidden="true"></span>
+          <span class="pcs__bookmeta">
+            <b>${esc(pcLabel)}</b>
+            <small>${esc([zLabel, stateText].filter(Boolean).join(" · "))}</small>
+          </span>
+        </div>
+        <div class="pcs__bookactions">
+          ${
+            href
+              ? `<a class="btn btn--primary btn--sm" href="${esc(href)}"${targetAttrs(href)} data-track="booking" data-id="booking_pc_${pc.num}" data-label="${esc(ui("availability.map.bookPc", { n: pc.num }, DEFAULT_LANG))}">${icon(isTel ? "phone" : "calendar-check")}${esc(bookText)}</a>`
+              : ""
+          }
+          <button class="icon-btn icon-btn--sm" type="button" data-pc-clear aria-label="${esc(ui("share.close"))}">${icon("close")}</button>
+        </div>
+      </div>`;
+  }
+
   function pcsHtml() {
     if (AV.showGrid === false || !pcData || !pcsOnline().length) return "";
+    const byNum = pcMapByNum();
+    // Якщо обраний ПК уже не вільний — знімаємо виділення
+    if (selectedPcNum != null && byNum.get(selectedPcNum)?.state !== "free") selectedPcNum = null;
+
     const groups = [];
-    pcData.pcs.forEach((pc) => {
+    pcData.pcs.forEach((raw) => {
+      const pc = { ...raw, num: extractPcNum(raw), state: normPcState(raw.state) };
       const key = pc.zone || "";
       let group = groups.find((g) => g.key === key);
       if (!group) groups.push((group = { key, pcs: [] }));
       group.pcs.push(pc);
     });
-    const tile = (pc) => {
-      const stateText = ui(`availability.state.${pc.state}`);
-      const sinceText = pc.state !== "offline" && pc.since ? ui(`availability.since.${pc.state}`, { time: clock(pc.since) }) : "";
-      return `<li class="pc pc--${esc(pc.state)}" title="${esc([pc.name, stateText, sinceText].filter(Boolean).join(" · "))}">
-          <span class="pc__name">${esc(pc.name)}</span>
-          <span class="pc__state">${esc(stateText)}</span>
-        </li>`;
+
+    const zonesBar = groups.length
+      ? `<div class="pcs__zones-bar">${groups
+          .map((g) => {
+            const free = g.pcs.filter((pc) => pc.state === "free").length;
+            const total = g.pcs.length;
+            const isStream = /stream/i.test(g.key);
+            return `<span class="pcs__zpill${isStream ? " pcs__zpill--stream" : ""}${free > 0 ? " is-avail" : ""}"><b>${esc(zoneTitle(g.key) || ui("availability.otherZone"))}:</b> <span>${esc(free)}/${esc(total)}</span></span>`;
+          })
+          .join("")}</div>`
+      : "";
+
+    const listBody = () => {
+      const tile = (pc) => {
+        const stateText = ui(`availability.state.${pc.state}`);
+        const sinceText = pc.state !== "offline" && pc.since ? ui(`availability.since.${pc.state}`, { time: clock(pc.since) }) : "";
+        const isFree = pc.state === "free" && pc.num != null;
+        const isSelected = isFree && selectedPcNum === pc.num;
+        return `<li class="pc pc--${esc(pc.state)}${isFree ? " is-selectable" : ""}${isSelected ? " is-selected" : ""}"${isFree ? ` data-pc-num="${pc.num}" tabindex="0" role="button" aria-pressed="${isSelected}"` : ""} title="${esc([pc.name, stateText, sinceText].filter(Boolean).join(" · "))}">
+            <span class="pc__name">${esc(pc.name)}</span>
+            <span class="pc__state">${esc(stateText)}</span>
+          </li>`;
+      };
+      return groups
+        .map((g) => {
+          const free = g.pcs.filter((pc) => pc.state === "free").length;
+          const total = g.pcs.length;
+          const head =
+            groups.length > 1 || g.key
+              ? `<h3 class="pcs__zone">${esc(zoneTitle(g.key) || ui("availability.otherZone"))}<span>${esc(free)}/${esc(total)}</span></h3>`
+              : "";
+          return `<div class="pcs__group">${head}<ul class="pcs">${g.pcs.map(tile).join("")}</ul></div>`;
+        })
+        .join("");
     };
-    const body = groups
-      .map((g) => {
-        const free = g.pcs.filter((pc) => pc.state === "free").length;
-        const head = groups.length > 1 || g.key
-          ? `<h3 class="pcs__zone">${esc(zoneTitle(g.key) || ui("availability.otherZone"))}<span>${esc(free)}/${esc(g.pcs.filter((pc) => pc.state !== "offline").length)}</span></h3>`
-          : "";
-        return `<div class="pcs__group">${head}<ul class="pcs">${g.pcs.map(tile).join("")}</ul></div>`;
-      })
-      .join("");
+
+    const body = pcView === "list" ? listBody() : clubMapHtml(byNum);
+    const bookBar = `<div data-bookbar-slot>${bookBarHtml(byNum)}</div>`;
+
     // «Обслуговування» (лише від Vade Launcher) у легенді — тільки коли такий ПК зараз є
     const legend = ["free", "busy", "maintenance", "offline"]
-      .filter((s) => s !== "maintenance" || pcData.pcs.some((pc) => pc.state === s))
+      .filter((s) => s !== "maintenance" || pcData.pcs.some((pc) => normPcState(pc.state) === s))
       .map((s) => `<span class="pcs__key pc--${s}"><i aria-hidden="true"></i>${esc(ui(`availability.state.${s}`))}</span>`)
       .join("");
     const note = `<p class="section__note pcs__note"><span class="pcs__legend">${legend}</span><span>${esc(ui("availability.updated", { time: clock(pcData.updated) }))}</span></p>`;
-    return section("pcs", ui("availability.title"), body + note);
+
+    return `
+      <section class="section rise" id="pcs" aria-labelledby="pcs-title">
+        <div class="pcs__head">
+          <h2 class="section__title" id="pcs-title">${esc(ui("availability.title"))}</h2>
+          <div class="pcs__toggle" role="group" aria-label="${esc(ui("availability.view.label"))}">
+            <button class="pcs__toggle-btn" type="button" data-pc-view="map" aria-pressed="${pcView === "map"}">${icon("map")}<span>${esc(ui("availability.view.map"))}</span></button>
+            <button class="pcs__toggle-btn" type="button" data-pc-view="list" aria-pressed="${pcView === "list"}">${icon("layout-grid")}<span>${esc(ui("availability.view.list"))}</span></button>
+          </div>
+        </div>
+        ${zonesBar}
+        ${body}
+        ${bookBar}
+        ${note}
+      </section>`;
   }
 
   const pcsSlotHtml = () => `<div id="pcsSlot">${pcsHtml()}</div>`;
@@ -1061,10 +1346,93 @@
     if (chip) chip.outerHTML = availChipHtml();
     const slot = $("#pcsSlot");
     if (slot) {
+      const prevScroll = $("[data-map-viewport]", slot)?.scrollLeft || 0;
       const html = pcsHtml();
       // Секція з'являється з анімацією лише першого разу, далі тихо оновлюється
       if (slot.innerHTML && html) slot.classList.add("no-anim");
       slot.innerHTML = html;
+      const viewport = $("[data-map-viewport]", slot);
+      if (viewport && prevScroll) viewport.scrollLeft = prevScroll;
+      applyUtm(slot);
+    }
+  }
+
+  function showMapTooltip(el) {
+    const mapRoot = el?.closest("[data-club-map]");
+    if (!mapRoot || !pcData) return;
+    const tip = $("[data-map-tooltip]", mapRoot);
+    if (!tip) return;
+    const num = Number(el.dataset.pcNum);
+    const pc = pcMapByNum().get(num);
+    if (!pc) return;
+    tooltipPcNum = num;
+
+    const state = pc.state;
+    const pcLabel = ui("availability.map.pcLabel", { n: num });
+    const zLabel = zoneTitle(pc.zone);
+    const stateText = ui(`availability.state.${state}`);
+    const sinceText = state !== "offline" && pc.since ? ui(`availability.since.${state}`, { time: clock(pc.since) }) : "";
+
+    tip.className = `club-map__tooltip club-map__tooltip--${state}`;
+    tip.innerHTML = `
+      <div class="club-map__tip-top">
+        <b>${esc(pcLabel)}</b>
+        <span class="club-map__tip-badge">${esc(stateText)}</span>
+      </div>
+      <div class="club-map__tip-meta">${esc([zLabel, sinceText].filter(Boolean).join(" · "))}</div>`;
+    tip.hidden = false;
+
+    const mapRect = mapRoot.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    const tipRect = tip.getBoundingClientRect();
+    const pad = 8;
+    const centerX = elRect.left - mapRect.left + elRect.width / 2;
+    const left = Math.max(pad, Math.min(mapRect.width - tipRect.width - pad, centerX - tipRect.width / 2));
+    let top = elRect.top - mapRect.top - tipRect.height - 8;
+    let placedBelow = false;
+    if (top < 6) {
+      top = elRect.bottom - mapRect.top + 8;
+      placedBelow = true;
+    }
+    tip.style.left = `${Math.round(left)}px`;
+    tip.style.top = `${Math.round(top)}px`;
+    tip.classList.toggle("is-below", placedBelow);
+  }
+
+  function hideMapTooltip() {
+    tooltipPcNum = null;
+    const tip = $("[data-map-tooltip]");
+    if (tip) tip.hidden = true;
+  }
+
+  function syncSelectedPcUi() {
+    const slot = $("#pcsSlot");
+    if (!slot) return;
+    const byNum = pcMapByNum();
+    $$("[data-pc-num]", slot).forEach((el) => {
+      const n = Number(el.dataset.pcNum);
+      const active = selectedPcNum === n && byNum.get(n)?.state === "free";
+      el.classList.toggle("is-selected", active);
+      if (el.hasAttribute("aria-pressed")) el.setAttribute("aria-pressed", String(active));
+    });
+    const bookSlot = $("[data-bookbar-slot]", slot);
+    if (bookSlot) {
+      bookSlot.innerHTML = bookBarHtml(byNum);
+      applyUtm(bookSlot);
+    }
+  }
+
+  function handlePcActivate(el) {
+    const num = Number(el.dataset.pcNum);
+    const pc = pcMapByNum().get(num);
+    if (!pc) return;
+    if (el.closest("[data-club-map]")) showMapTooltip(el);
+    if (pc.state === "free") {
+      selectedPcNum = selectedPcNum === num ? null : num;
+      syncSelectedPcUi();
+    } else if (selectedPcNum != null) {
+      selectedPcNum = null;
+      syncSelectedPcUi();
     }
   }
 
@@ -1353,10 +1721,71 @@
   };
 
   function onMainClick(event) {
-    if (!event.target.closest("#mapLoad")) return;
-    mapLoaded = true;
-    $("#map").innerHTML = mapFrameHtml();
-    track("map", { id: "map", label: uiDef("location.showMap") });
+    if (event.target.closest("#mapLoad")) {
+      mapLoaded = true;
+      $("#map").innerHTML = mapFrameHtml();
+      track("map", { id: "map", label: uiDef("location.showMap") });
+      return;
+    }
+    const viewBtn = event.target.closest("[data-pc-view]");
+    if (viewBtn) {
+      const next = viewBtn.dataset.pcView;
+      if (next !== pcView && (next === "map" || next === "list")) {
+        pcView = next;
+        hideMapTooltip();
+        renderAvailability();
+      }
+      return;
+    }
+    if (event.target.closest("[data-pc-clear]")) {
+      selectedPcNum = null;
+      syncSelectedPcUi();
+      return;
+    }
+    const pcEl = event.target.closest("[data-pc-num]");
+    if (pcEl) {
+      handlePcActivate(pcEl);
+      return;
+    }
+    if (!event.target.closest("[data-map-tooltip]")) hideMapTooltip();
+  }
+
+  function onMainPointerOver(event) {
+    if (event.pointerType !== "mouse") return;
+    const pcEl = event.target.closest(".map-pc[data-pc-num]");
+    if (pcEl) showMapTooltip(pcEl);
+  }
+
+  function onMainPointerOut(event) {
+    if (event.pointerType !== "mouse") return;
+    const fromPc = event.target.closest(".map-pc[data-pc-num]");
+    if (!fromPc) return;
+    const toPc = event.relatedTarget?.closest?.(".map-pc[data-pc-num]");
+    if (!toPc) hideMapTooltip();
+  }
+
+  function onMainFocusIn(event) {
+    const pcEl = event.target.closest(".map-pc[data-pc-num]");
+    if (pcEl) showMapTooltip(pcEl);
+  }
+
+  function onMainFocusOut(event) {
+    const fromPc = event.target.closest(".map-pc[data-pc-num]");
+    if (!fromPc) return;
+    const toPc = event.relatedTarget?.closest?.(".map-pc[data-pc-num]");
+    if (!toPc) hideMapTooltip();
+  }
+
+  function onMainKeyDown(event) {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    const pcEl = event.target.closest("[data-pc-num]");
+    if (!pcEl) return;
+    event.preventDefault();
+    handlePcActivate(pcEl);
+  }
+
+  function onDocumentClick(event) {
+    if (tooltipPcNum != null && !event.target.closest("[data-club-map]")) hideMapTooltip();
   }
 
   /* ================= Копіювання та сповіщення ================= */
@@ -1886,7 +2315,24 @@
   document.addEventListener("click", onTrackedClick);
   document.addEventListener("auxclick", onTrackedClick);
   document.addEventListener("click", onCopyClick);
-  $("#main").addEventListener("click", onMainClick);
-  $("#main").addEventListener("toggle", onFaqToggle, true); // «toggle» не спливає, тому ловимо на етапі захоплення
+  document.addEventListener("click", onDocumentClick);
+  const mainEl = $("#main");
+  mainEl.addEventListener("click", onMainClick);
+  mainEl.addEventListener("pointerover", onMainPointerOver);
+  mainEl.addEventListener("pointerout", onMainPointerOut);
+  mainEl.addEventListener("focusin", onMainFocusIn);
+  mainEl.addEventListener("focusout", onMainFocusOut);
+  mainEl.addEventListener("keydown", onMainKeyDown);
+  mainEl.addEventListener(
+    "scroll",
+    (e) => {
+      if (e.target.matches?.("[data-map-viewport]")) {
+        hideMapTooltip();
+        e.target.closest("[data-club-map]")?.classList.add("is-scrolled");
+      }
+    },
+    true
+  );
+  mainEl.addEventListener("toggle", onFaqToggle, true); // «toggle» не спливає, тому ловимо на етапі захоплення
   $("#footer").addEventListener("click", onFooterClick);
 })();

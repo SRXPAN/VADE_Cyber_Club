@@ -496,19 +496,35 @@ window.VADE_CONFIG = {
       label: { pl: "Dostępność komputerów teraz", en: "PC availability right now", uk: "Наявність ПК зараз", ru: "Наличие ПК сейчас" },
       title: { pl: "Wolne komputery teraz", en: "Free PCs right now", uk: "Вільні ПК зараз", ru: "Свободные ПК сейчас" },
       state: {
-        free:    { pl: "Wolny",    en: "Free",    uk: "Вільний",  ru: "Свободен" },
-        busy:    { pl: "Zajęty",   en: "Busy",    uk: "Зайнятий", ru: "Занят" },
+        free:    { pl: "Wolny",    en: "Free",        uk: "Вільний",  ru: "Свободен" },
+        busy:    { pl: "Zajęty",   en: "Busy",        uk: "Зайнятий", ru: "Занят" },
         // обслуговування / оновлення ігор (стан надсилає Vade Launcher)
-        maintenance: { pl: "Serwis", en: "Service", uk: "Сервіс", ru: "Сервис" },
-        offline: { pl: "Wyłączony", en: "Off",    uk: "Вимкнено", ru: "Выключен" }
+        maintenance: { pl: "Serwis", en: "Maintenance", uk: "Сервіс", ru: "Сервис" },
+        offline: { pl: "Wyłączony", en: "Off",        uk: "Вимкнено", ru: "Выключен" }
       },
       since: {
         free: { pl: "wolny od {time}",  en: "free since {time}", uk: "вільний з {time}",  ru: "свободен с {time}" },
         busy: { pl: "zajęty od {time}", en: "busy since {time}", uk: "зайнятий з {time}", ru: "занят с {time}" },
-        maintenance: { pl: "serwis od {time}", en: "in service since {time}", uk: "обслуговування з {time}", ru: "обслуживание с {time}" }
+        maintenance: { pl: "serwis od {time}", en: "in maintenance since {time}", uk: "обслуговування з {time}", ru: "обслуживание с {time}" }
       },
       updated:   { pl: "Stan na {time}", en: "As of {time}", uk: "Станом на {time}", ru: "По состоянию на {time}" },
-      otherZone: { pl: "Pozostałe", en: "Other", uk: "Інші", ru: "Другие" }
+      otherZone: { pl: "Pozostałe", en: "Other", uk: "Інші", ru: "Другие" },
+      view: {
+        label: { pl: "Widok sali", en: "Hall view", uk: "Вигляд залу", ru: "Вид зала" },
+        map:   { pl: "Mapa",  en: "Map",  uk: "Карта",  ru: "Карта" },
+        list:  { pl: "Lista", en: "List", uk: "Список", ru: "Список" }
+      },
+      map: {
+        label:      { pl: "Interaktywna mapa sali VADE", en: "Interactive VADE hall map", uk: "Інтерактивна карта залу VADE", ru: "Интерактивная карта зала VADE" },
+        entrance:   { pl: "Wejście",  en: "Entrance", uk: "Вхід",   ru: "Вход" },
+        admin:      { pl: "Admin",    en: "Admin",    uk: "Адмін",  ru: "Админ" },
+        wc:         { pl: "WC",       en: "WC",       uk: "WC",     ru: "WC" },
+        standard:   { pl: "STANDARD", en: "STANDARD", uk: "STANDARD", ru: "STANDARD" },
+        stream:     { pl: "STREAM",   en: "STREAM",   uk: "STREAM",   ru: "STREAM" },
+        pcLabel:    { pl: "PC #{n}",  en: "PC #{n}",  uk: "ПК #{n}", ru: "ПК #{n}" },
+        bookPc:     { pl: "Zarezerwuj PC #{n}", en: "Book PC #{n}", uk: "Забронювати ПК #{n}", ru: "Забронировать ПК #{n}" },
+        scrollHint: { pl: "Przesuń mapę", en: "Swipe map", uk: "Гортайте карту", ru: "Листайте карту" }
+      }
     },
 
     zones: {
