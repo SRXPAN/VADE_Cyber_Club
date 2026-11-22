@@ -18,10 +18,22 @@ const SCHEMA = `CREATE TABLE IF NOT EXISTS pcs (
   detail TEXT NOT NULL DEFAULT ''
 )`;
 
+// Vade Launcher (адмін-панель на головному ПК) шле стани всіх ПК одним запитом на /api/club-status.
+// Його ПК лежать у тій самій таблиці pcs з id "vade:<номер столу>" (двокрапки в id агентів не буває — не переплутаються),
+// а в vade_source — коли Vade Launcher востаннє виходив на зв'язок і скільки секунд його дані вважаються свіжими.
+export const VADE_PREFIX = "vade:";
+const VADE_SCHEMA = `CREATE TABLE IF NOT EXISTS vade_source (
+  k       TEXT PRIMARY KEY,
+  seen    INTEGER NOT NULL,
+  ttl     INTEGER NOT NULL,
+  updated INTEGER NOT NULL DEFAULT 0
+)`;
+
 let schemaReady = false;
 export async function ensureSchema(db) {
   if (schemaReady) return;
   await db.prepare(SCHEMA).run();
+  await db.prepare(VADE_SCHEMA).run();
   schemaReady = true;
 }
 

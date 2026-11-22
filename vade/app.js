@@ -1044,7 +1044,9 @@
         return `<div class="pcs__group">${head}<ul class="pcs">${g.pcs.map(tile).join("")}</ul></div>`;
       })
       .join("");
-    const legend = ["free", "busy", "offline"]
+    // «Обслуговування» (лише від Vade Launcher) у легенді — тільки коли такий ПК зараз є
+    const legend = ["free", "busy", "maintenance", "offline"]
+      .filter((s) => s !== "maintenance" || pcData.pcs.some((pc) => pc.state === s))
       .map((s) => `<span class="pcs__key pc--${s}"><i aria-hidden="true"></i>${esc(ui(`availability.state.${s}`))}</span>`)
       .join("");
     const note = `<p class="section__note pcs__note"><span class="pcs__legend">${legend}</span><span>${esc(ui("availability.updated", { time: clock(pcData.updated) }))}</span></p>`;

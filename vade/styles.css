@@ -2197,6 +2197,11 @@ button {
   --c: var(--bad);
 }
 
+/* Обслуговування / оновлення ігор (від Vade Launcher) — бурштиновий, ПК зараз недоступний */
+.pc--maintenance {
+  --c: #ffb547;
+}
+
 .pc--offline {
   --c: var(--faint);
   opacity: 0.55;
@@ -2252,6 +2257,10 @@ button {
 
 .pcs__key.pc--busy {
   --c: var(--bad);
+}
+
+.pcs__key.pc--maintenance {
+  --c: #ffb547;
 }
 
 /* На широкому екрані плитки ПК — таке саме «скло», як інші картки */

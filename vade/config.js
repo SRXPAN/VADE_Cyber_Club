@@ -100,9 +100,10 @@ window.VADE_CONFIG = {
   },
 
   // Вільні / зайняті ПК: бейдж «🟢 12 wolnych PC» у шапці й секція з усіма ПК по зонах.
-  // Дані надсилає агент з кожного комп'ютера (папка agent/ у репозиторії) на functions/api/report.js,
-  // а сайт читає їх з /api/status. Поки жоден ПК не звітував (або сайт відкрито не з Cloudflare) — нічого не показується.
-  // Назва зони з агента (Zone у agent.config.psd1) перекладається, якщо збігається з назвою зони в zones нижче.
+  // Дані надсилає Vade Launcher з головного ПК (functions/api/club-status.js, зони Regular → Standard, Stream → Streamer)
+  // або агент з кожного комп'ютера (папка agent/, functions/api/report.js), а сайт читає їх з /api/status.
+  // Поки жоден ПК не звітував (або сайт відкрито не з Cloudflare) — нічого не показується.
+  // Назва зони перекладається, якщо збігається з назвою зони в zones нижче.
   availability: {
     enabled: true,
     endpoint: "/api/status",
@@ -497,11 +498,14 @@ window.VADE_CONFIG = {
       state: {
         free:    { pl: "Wolny",    en: "Free",    uk: "Вільний",  ru: "Свободен" },
         busy:    { pl: "Zajęty",   en: "Busy",    uk: "Зайнятий", ru: "Занят" },
+        // обслуговування / оновлення ігор (стан надсилає Vade Launcher)
+        maintenance: { pl: "Serwis", en: "Service", uk: "Сервіс", ru: "Сервис" },
         offline: { pl: "Wyłączony", en: "Off",    uk: "Вимкнено", ru: "Выключен" }
       },
       since: {
         free: { pl: "wolny od {time}",  en: "free since {time}", uk: "вільний з {time}",  ru: "свободен с {time}" },
-        busy: { pl: "zajęty od {time}", en: "busy since {time}", uk: "зайнятий з {time}", ru: "занят с {time}" }
+        busy: { pl: "zajęty od {time}", en: "busy since {time}", uk: "зайнятий з {time}", ru: "занят с {time}" },
+        maintenance: { pl: "serwis od {time}", en: "in service since {time}", uk: "обслуговування з {time}", ru: "обслуживание с {time}" }
       },
       updated:   { pl: "Stan na {time}", en: "As of {time}", uk: "Станом на {time}", ru: "По состоянию на {time}" },
       otherZone: { pl: "Pozostałe", en: "Other", uk: "Інші", ru: "Другие" }
