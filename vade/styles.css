@@ -32,6 +32,7 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  overflow-x: clip;
 }
 
 body {
@@ -43,7 +44,12 @@ body {
   font: 400 16px/1.5 var(--font-body);
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
-  overflow-x: hidden;
+  overflow-x: clip;
+}
+
+html.nav-open,
+body.nav-open {
+  overflow: hidden;
 }
 
 [hidden] {
@@ -115,39 +121,58 @@ button {
   }
 }
 
-/* Затемнення поверх фону: текст і кнопки завжди чіткі.
-   Комп'ютер: темніше за колонкою з кнопками, по боках зал видно краще. */
+/* Затемнення поверх фону: текст, карта й картки завжди чіткі на будь-якій ширині */
 .bg::after {
   content: "";
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(to bottom, rgba(10, 11, 13, 0.4), transparent 24%, transparent 74%, rgba(10, 11, 13, 0.6)),
-    linear-gradient(
-      90deg,
-      rgba(10, 11, 13, 0.12) calc(50% - 380px),
-      rgba(10, 11, 13, 0.66) calc(50% - 250px),
-      rgba(10, 11, 13, 0.66) calc(50% + 250px),
-      rgba(10, 11, 13, 0.12) calc(50% + 380px)
-    );
+    linear-gradient(to bottom, rgba(10, 11, 13, 0.52), rgba(10, 11, 13, 0.42) 28%, rgba(10, 11, 13, 0.58) 72%, rgba(10, 11, 13, 0.82)),
+    radial-gradient(960px 680px at 50% 30%, rgba(10, 11, 13, 0.32), rgba(10, 11, 13, 0.72) 100%);
 }
 
-/* Телефон: колонка займає всю ширину, тож фон видно лише вгорі за шапкою; нижче він поступово гасне */
-@media (max-width: 560px) {
+/* Телефон: верх трохи світліший, нижче фон плавно затемнюється для кращої читабельності */
+@media (max-width: 767px) {
   .bg::after {
     background:
-      radial-gradient(240px 190px at 50% 200px, rgba(10, 11, 13, 0.46), transparent 100%),
-      linear-gradient(to bottom, rgba(10, 11, 13, 0.14) 0, rgba(10, 11, 13, 0.32) 34%, rgba(10, 11, 13, 0.84) 58%, rgba(10, 11, 13, 0.95) 100%);
+      radial-gradient(260px 210px at 50% 180px, rgba(10, 11, 13, 0.44), transparent 100%),
+      linear-gradient(to bottom, rgba(10, 11, 13, 0.28) 0, rgba(10, 11, 13, 0.48) 32%, rgba(10, 11, 13, 0.84) 58%, rgba(10, 11, 13, 0.95) 100%);
   }
 }
 
-/* ---------- Каркас ---------- */
+/* ---------- Каркас (4 категорії екранів) ---------- */
 
 .page {
   position: relative;
-  max-width: 480px;
+  width: 100%;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 16px 16px calc(32px + env(safe-area-inset-bottom));
+  padding: clamp(14px, 2.2vw, 28px) clamp(14px, 2.5vw, 32px) calc(clamp(32px, 4vw, 64px) + env(safe-area-inset-bottom));
+}
+
+@media (max-width: 1279px) {
+  .page {
+    max-width: 1120px;
+  }
+}
+
+@media (max-width: 1023px) {
+  .page {
+    max-width: 920px;
+  }
+}
+
+@media (max-width: 767px) {
+  .page {
+    max-width: 100%;
+    padding: 12px 14px calc(32px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 390px) {
+  .page {
+    padding: 10px 12px calc(32px + env(safe-area-inset-bottom));
+  }
 }
 
 .rise {
@@ -785,17 +810,18 @@ button {
 /* ---------- Секції ---------- */
 
 .section {
-  margin-top: 40px;
+  margin-top: clamp(28px, 3.8vw, 52px);
+  scroll-margin-top: 78px;
 }
 
 .section__title {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 0 0 14px;
+  margin: 0 0 clamp(12px, 1.4vw, 18px);
   color: var(--muted);
-  font: 700 12.5px/1 var(--font-display);
-  letter-spacing: 0.16em;
+  font: 700 clamp(11.5px, 1.1vw, 13.5px) / 1.1 var(--font-display);
+  letter-spacing: 0.15em;
   text-transform: uppercase;
 }
 
@@ -813,20 +839,20 @@ button {
   font-size: 13px;
 }
 
-/* ---------- Галерея ---------- */
+/* ---------- Галерея (карусель на смартфоні, адаптивна сітка на планшеті/ПК) ---------- */
 
 .carousel__rail {
   position: relative;
   display: flex;
-  align-items: flex-start; /* кожен слайд — своєї висоти, а висоту стрічки підганяє app.js під активний */
+  align-items: stretch;
   gap: 12px;
-  margin: 0 -16px;
-  padding: 0 16px;
+  margin: 0 -14px;
+  padding: 0 14px;
   overflow-x: auto;
   overflow-y: hidden;
-  transition: height 0.3s ease;
+  transition: height 0.25s ease;
   scroll-snap-type: x mandatory;
-  scroll-padding: 0 16px;
+  scroll-padding: 0 14px;
   overscroll-behavior-x: contain;
   scrollbar-width: none;
 }
@@ -838,28 +864,50 @@ button {
 .slide {
   position: relative;
   flex: 0 0 86%;
+  aspect-ratio: 4 / 3;
   margin: 0;
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: #000;
+  background: #0d1016;
   scroll-snap-align: center;
 }
 
-/* Заглушка без фото позиціонована absolute і своєї висоти не має — їй лишаємо 4:3 */
-.slide:has(> .slide__ph) {
-  aspect-ratio: 4 / 3;
-}
-
-/* Висоту задає саме фото/відео (вертикальне — вищий слайд). Дуже високі обмежені 75vh:
-   тоді contain показує їх повністю з полями по боках, без розтягування */
+/* Пропорції 4:3 + object-fit: cover — фото та відео не розтягуються й не ламають сітку */
 .slide img,
 .slide video {
   display: block;
   width: 100%;
-  height: auto;
-  max-height: 75vh;
-  object-fit: contain;
+  height: 100%;
+  object-fit: cover;
+}
+
+@media (min-width: 768px) {
+  .carousel__rail {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+    scroll-snap-type: none;
+  }
+
+  .slide {
+    flex: none;
+    width: 100%;
+  }
+
+  .carousel__nav {
+    display: none;
+  }
+}
+
+@media (min-width: 1024px) {
+  .carousel__rail {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+  }
 }
 
 .slide figcaption {
@@ -2269,33 +2317,60 @@ button {
 .club-map__svg {
   display: block;
   width: 100%;
+  max-width: 1040px;
   height: auto;
+  margin: 0 auto;
   user-select: none;
   -webkit-user-select: none;
 }
 
 .club-map__hint {
   display: none;
-  margin: 4px 0 0;
-  padding: 0 4px;
-  color: var(--faint);
-  font-size: 11.5px;
-  font-weight: 600;
-  text-align: right;
-  transition: opacity 0.25s;
+  margin: 0 0 8px;
+  padding: 5px 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 10%, rgba(17, 19, 23, 0.85));
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  width: fit-content;
+  margin-inline: auto;
 }
 
 .club-map.is-scrolled .club-map__hint {
-  opacity: 0.35;
+  display: none !important;
 }
 
-@media (max-width: 480px) {
+/* Ноутбук (1024–1279px або невисокі екрани 1366×768): компактніша карта, щоб уміщатися по висоті */
+@media (min-width: 1024px) and (max-width: 1279px), (min-width: 1024px) and (max-height: 820px) {
   .club-map__svg {
-    min-width: 560px;
+    max-width: min(760px, 100%);
+  }
+}
+
+/* Планшет (768–1023px): вписується по ширині контейнера */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .club-map__svg {
+    max-width: 100%;
+    min-width: 0;
+  }
+}
+
+/* Смартфон (<= 767px): комфортна мінімальна ширина 640px + плавний горизонтальний скрол */
+@media (max-width: 767px) {
+  .club-map__svg {
+    min-width: 640px;
+    max-width: none;
   }
 
   .club-map__hint {
     display: block;
+  }
+
+  .club-map__tooltip {
+    display: none !important;
   }
 }
 
@@ -2798,5 +2873,738 @@ button {
       -webkit-backdrop-filter: blur(14px) saturate(1.2);
       backdrop-filter: blur(14px) saturate(1.2);
     }
+  }
+}
+
+/* =========================================================================
+   Повна адаптація під усі пристрої:
+   Великий ПК (>=1280px) · Ноутбук (1024–1279px) · Планшет (768–1023px) · Смартфон (<=767px, <=390px)
+   ========================================================================= */
+
+/* ---------- Адаптивна шапка (Header) + горизонтальна навігація ---------- */
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 45;
+  border-bottom: 1px solid var(--border);
+  background: rgba(10, 11, 13, 0.84);
+  -webkit-backdrop-filter: blur(14px) saturate(1.25);
+  backdrop-filter: blur(14px) saturate(1.25);
+}
+
+.site-header__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: clamp(8px, 1.5vw, 20px);
+  width: 100%;
+  max-width: 1280px;
+  min-height: 62px;
+  margin: 0 auto;
+  padding: 8px clamp(12px, 2.5vw, 32px);
+}
+
+@media (max-width: 1279px) {
+  .site-header__inner {
+    max-width: 1120px;
+  }
+}
+
+@media (max-width: 1023px) {
+  .site-header__inner {
+    max-width: 920px;
+  }
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+  min-height: 44px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.brand__logo {
+  display: block;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+.brand__name {
+  font: 800 clamp(15px, 1.5vw, 18px) / 1 var(--font-display);
+  letter-spacing: 0.08em;
+}
+
+.site-nav {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.site-nav__link {
+  padding: 8px 12px;
+  border-radius: 10px;
+  color: var(--muted);
+  font-size: 13.5px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.15s, background 0.15s;
+}
+
+.site-nav__link:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+}
+
+.site-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+.site-header .lang-switch {
+  margin-left: 0;
+}
+
+.icon-btn--header {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+}
+
+.header-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 0 15px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-deep) 100%);
+  box-shadow: 0 8px 22px -10px var(--accent);
+  color: var(--on-accent);
+  font-size: 13.5px;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: transform 0.15s, filter 0.15s;
+}
+
+.header-cta:hover {
+  filter: brightness(1.08);
+}
+
+.header-cta:active {
+  transform: scale(0.97);
+}
+
+.header-cta .ico {
+  width: 17px;
+  height: 17px;
+}
+
+.header-cta__short {
+  display: none;
+}
+
+.nav-burger {
+  display: inline-grid;
+}
+
+@media (min-width: 1024px) {
+  .site-nav {
+    display: flex;
+  }
+
+  .nav-burger {
+    display: none;
+  }
+}
+
+/* На планшетах і телефонах: мови переїжджають у бургер-меню, щоб шапка лишалася чистою */
+@media (max-width: 1023px) {
+  .site-header .lang-switch {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .site-header__inner {
+    min-height: 58px;
+    padding: 7px 12px;
+  }
+
+  #shareBtn {
+    display: none;
+  }
+}
+
+@media (max-width: 430px) {
+  .header-cta {
+    padding: 0 12px;
+    font-size: 13px;
+  }
+
+  .header-cta__full {
+    display: none;
+  }
+
+  .header-cta__short {
+    display: inline;
+  }
+}
+
+/* ---------- Бургер-меню (Drawer + Backdrop з блокуванням скролу) ---------- */
+
+.nav-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(5, 6, 9, 0.72);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+
+.nav-backdrop.is-open {
+  opacity: 1;
+}
+
+.nav-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 65;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: min(340px, 88vw);
+  max-height: 100dvh;
+  padding: 14px 18px calc(22px + env(safe-area-inset-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-left: 1px solid var(--border-strong);
+  background: rgba(14, 16, 22, 0.98);
+  box-shadow: -18px 0 48px rgba(0, 0, 0, 0.75);
+  transform: translateX(100%);
+  transition: transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.nav-drawer.is-open {
+  transform: translateX(0);
+}
+
+.nav-drawer__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.nav-drawer__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font: 800 16px/1 var(--font-display);
+  letter-spacing: 0.08em;
+}
+
+.nav-drawer__brand img {
+  border-radius: 8px;
+}
+
+.nav-drawer__links {
+  display: grid;
+  gap: 4px;
+}
+
+.nav-drawer__link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 46px;
+  padding: 0 12px;
+  border-radius: 12px;
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.nav-drawer__link .ico {
+  width: 18px;
+  height: 18px;
+  color: var(--faint);
+}
+
+.nav-drawer__link:hover,
+.nav-drawer__link:active {
+  background: var(--surface-2);
+}
+
+.nav-drawer__lang {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.nav-drawer__lang .lang-switch__btn {
+  min-width: 0;
+  min-height: 44px;
+  height: 44px;
+}
+
+.nav-drawer__actions {
+  display: grid;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+.nav-drawer__actions .btn {
+  width: 100%;
+  min-height: 48px;
+}
+
+/* ---------- Hero: 2 колонки на ПК/ноутбуці, центр на планшеті/смартфоні ---------- */
+
+.hero__body {
+  padding-top: clamp(4px, 1vw, 12px);
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  align-items: center;
+}
+
+.hero__logo {
+  width: clamp(72px, 8vw, 92px);
+  height: clamp(72px, 8vw, 92px);
+  margin: 0 auto 14px;
+}
+
+.hero__name {
+  font-size: clamp(28px, 4.4vw, 44px);
+}
+
+.hero__tagline {
+  font-size: clamp(14px, 1.5vw, 16.5px);
+}
+
+.hero__panel .cta,
+.hero__panel .live {
+  margin-top: 0;
+}
+
+.hero__panel .live + .cta {
+  margin-top: 12px;
+}
+
+.hero__panel .kit {
+  margin-top: 12px;
+}
+
+@media (min-width: 1024px) {
+  .hero {
+    text-align: left;
+  }
+
+  .hero-grid {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    gap: clamp(24px, 3vw, 48px);
+    padding: clamp(14px, 1.8vw, 24px) clamp(18px, 2.2vw, 28px);
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    background: rgba(14, 16, 22, 0.62);
+    -webkit-backdrop-filter: blur(14px) saturate(1.2);
+    backdrop-filter: blur(14px) saturate(1.2);
+  }
+
+  .hero__identity {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+
+  .hero__logo {
+    flex: none;
+    width: 74px;
+    height: 74px;
+    margin: 0;
+  }
+
+  .hero__name {
+    padding-left: 0;
+    font-size: clamp(28px, 2.6vw, 38px);
+  }
+
+  .hero__badges,
+  .socials {
+    justify-content: flex-start;
+  }
+
+  .socials {
+    margin-top: 14px;
+  }
+
+  .hero__panel .kit {
+    text-align: left;
+  }
+
+  .hero__panel .kit__specs,
+  .hero__panel .kit__games {
+    justify-content: flex-start;
+  }
+}
+
+/* Компактний ноутбук (1024–1279px або екрани висотою <= 820px, як 1366×768) */
+@media (min-width: 1024px) and (max-width: 1279px), (min-width: 1024px) and (max-height: 820px) {
+  .page {
+    padding-top: 12px;
+  }
+
+  .hero-grid {
+    padding: 12px 20px;
+    gap: 20px;
+  }
+
+  .hero__logo {
+    width: 60px;
+    height: 60px;
+  }
+
+  .hero__name {
+    font-size: 26px;
+  }
+
+  .socials {
+    margin-top: 10px;
+  }
+
+  .section {
+    margin-top: 22px;
+  }
+}
+
+/* Якірні переходи з урахуванням висоти липкої шапки */
+.section {
+  scroll-margin-top: 80px;
+}
+
+/* ---------- Адаптивні сітки секцій (Посилання, Зони/Тарифи, Відгуки, FAQ, Локація) ---------- */
+
+.links {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 768px) {
+  .links {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .zones {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .reviews {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 14px;
+  }
+
+  .faq {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 12px;
+  }
+
+  .location-grid--split {
+    display: grid;
+    grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+  }
+
+  .location-grid--split .location__hours {
+    border-right: 1px solid var(--border);
+  }
+
+  .location-grid--split .location__place {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .location-grid--split .address {
+    border-top: 0;
+  }
+
+  .location-grid--split .map {
+    flex: 1;
+    min-height: 210px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .links {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+  }
+}
+
+/* На смартфонах: 1-колонкові тарифи та адаптивні ціни, щоб нічого не злипалось на 360px */
+@media (max-width: 767px) {
+  .zones {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .zone__price {
+    font-size: clamp(22px, 6vw, 26px);
+  }
+
+  .rate__price {
+    font-size: clamp(18px, 5vw, 22px);
+  }
+
+  .pack__price {
+    font-size: clamp(24px, 6.5vw, 30px);
+  }
+
+  .pack__body {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  /* Великі зручні тач-кнопки мінімум 44×44px */
+  .pcs__head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .pcs__toggle {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .pcs__toggle-btn {
+    justify-content: center;
+    min-height: 44px;
+    height: 44px;
+    font-size: 13px;
+  }
+
+  .pcs__zones-bar {
+    gap: 6px;
+  }
+
+  .pcs__zpill {
+    flex: 1 1 auto;
+    justify-content: center;
+    min-height: 36px;
+    padding: 6px 10px;
+    font-size: 12.5px;
+  }
+
+  .icon-btn--sm {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .hero__address {
+    max-width: 100%;
+    flex-wrap: wrap;
+    justify-content: center;
+    border-radius: 16px;
+    padding: 8px 12px;
+  }
+}
+
+/* ---------- Нижня картка ПК на смартфонах (<= 767px) при тапі по карті ---------- */
+
+.pc-sheet {
+  --sheet-c: var(--faint);
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 48;
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px calc(16px + env(safe-area-inset-bottom));
+  border-top: 1px solid color-mix(in srgb, var(--sheet-c) 55%, var(--border-strong));
+  border-radius: 20px 20px 0 0;
+  background: rgba(14, 17, 24, 0.97);
+  box-shadow:
+    0 -16px 40px rgba(0, 0, 0, 0.8),
+    0 0 32px -16px var(--sheet-c);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  animation: sheet-up 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.pc-sheet--free {
+  --sheet-c: var(--ok);
+}
+
+.pc-sheet--busy {
+  --sheet-c: var(--bad);
+}
+
+.pc-sheet--maintenance {
+  --sheet-c: #ffb547;
+}
+
+.pc-sheet--offline {
+  --sheet-c: var(--faint);
+}
+
+.pc-sheet__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pc-sheet__info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.pc-sheet__dot {
+  flex: none;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--sheet-c);
+  box-shadow: 0 0 12px var(--sheet-c);
+}
+
+.pc-sheet__meta {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pc-sheet__title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pc-sheet__title b {
+  font: 700 15px/1.15 var(--font-display);
+  color: var(--text);
+}
+
+.pc-sheet__badge {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--sheet-c) 18%, transparent);
+  color: var(--sheet-c);
+  font-size: 11.5px;
+  font-weight: 800;
+}
+
+.pc-sheet__meta small {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pc-sheet__cta {
+  width: 100%;
+  min-height: 48px;
+}
+
+@media (min-width: 768px) {
+  .pc-sheet {
+    display: none !important;
+  }
+}
+
+/* ---------- Модальні вікна на мобільних (клавіатура, safe-area, вся ширина) ---------- */
+
+@media (max-width: 767px) {
+  .sheet {
+    width: 100%;
+    max-width: 100%;
+    max-height: calc(100dvh - 16px);
+    overscroll-behavior: contain;
+    border-inline: 0;
+  }
+
+  .sheet__inner {
+    padding: 12px 16px calc(24px + env(safe-area-inset-bottom));
+  }
+
+  .copy-row {
+    flex-wrap: wrap;
+  }
+
+  .copy-row input {
+    min-height: 46px;
+  }
+
+  .copy-row .btn {
+    flex: 1 0 auto;
+    min-height: 46px;
+  }
+
+  .consent {
+    right: 8px;
+    left: 8px;
+    max-width: none;
+    max-height: calc(100dvh - 24px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .actionbar {
+    right: 10px;
+    left: 10px;
+    max-width: none;
+  }
+}
+
+@media (min-width: 768px) {
+  .sheet {
+    max-width: 520px;
+    margin: auto;
+    border-bottom: 1px solid var(--border-strong);
+    border-radius: 24px;
+  }
+
+  .sheet__grab {
+    display: none;
+  }
+
+  .sheet__inner {
+    padding: 20px 22px 24px;
+  }
+
+  .actionbar {
+    display: none;
   }
 }

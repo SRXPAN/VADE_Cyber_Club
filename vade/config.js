@@ -390,6 +390,18 @@ window.VADE_CONFIG = {
     language: { pl: "Język", en: "Language", uk: "Мова", ru: "Язык" },
     copied:   { pl: "Skopiowano", en: "Copied", uk: "Скопійовано", ru: "Скопировано" },
 
+    nav: {
+      label:    { pl: "Nawigacja", en: "Navigation", uk: "Навігація", ru: "Навигация" },
+      menu:     { pl: "Menu", en: "Menu", uk: "Меню", ru: "Меню" },
+      pcs:      { pl: "Mapa PC", en: "PC Map", uk: "Карта ПК", ru: "Карта ПК" },
+      gallery:  { pl: "Galeria", en: "Gallery", uk: "Галерея", ru: "Галерея" },
+      zones:    { pl: "Ceny", en: "Prices", uk: "Ціни", ru: "Цены" },
+      reviews:  { pl: "Opinie", en: "Reviews", uk: "Відгуки", ru: "Отзывы" },
+      location: { pl: "Adres", en: "Location", uk: "Адреса", ru: "Адрес" },
+      faq:      { pl: "FAQ", en: "FAQ", uk: "FAQ", ru: "FAQ" },
+      bookShort:{ pl: "Rezerwuj", en: "Book", uk: "Бронь", ru: "Бронь" }
+    },
+
     hero: {
       logoAlt:   { pl: "Logo {name}", en: "{name} logo", uk: "Логотип {name}", ru: "Логотип {name}" },
       socials:   { pl: "Media społecznościowe", en: "Social media", uk: "Соцмережі", ru: "Соцсети" },
@@ -523,7 +535,7 @@ window.VADE_CONFIG = {
         stream:     { pl: "Stream",   en: "Stream",   uk: "Stream",  ru: "Stream" },
         pcLabel:    { pl: "PC #{n}",  en: "PC #{n}",  uk: "ПК #{n}", ru: "ПК #{n}" },
         bookPc:     { pl: "Zarezerwuj PC #{n}", en: "Book PC #{n}", uk: "Забронювати ПК #{n}", ru: "Забронировать ПК #{n}" },
-        scrollHint: { pl: "Przesuń mapę", en: "Swipe map", uk: "Гортайте карту", ru: "Листайте карту" }
+        scrollHint: { pl: "← Przesuń mapę →", en: "← Swipe map →", uk: "← Гортайте карту →", ru: "← Листайте карту →" }
       }
     },
 

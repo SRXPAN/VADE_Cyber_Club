@@ -564,28 +564,36 @@
   function heroHtml() {
     const socials = (C.socials || []).filter((s) => s.url && NETWORKS[s.network]);
     const tagline = t(site.tagline);
+    const rightCol = liveHtml() + ctaHtml() + kitHtml();
     return `
-      <div class="rise">
-        <div class="hero__logo"><img src="${esc(site.logo || "assets/logo.svg")}" alt="${esc(ui("hero.logoAlt"))}" width="96" height="96" loading="eager" fetchpriority="high" decoding="async"></div>
-        <h1 class="hero__name">${esc(site.name)}</h1>
-        ${tagline ? `<p class="hero__tagline">${esc(tagline)}</p>` : ""}
-        <div class="hero__badges">
-          <p class="status" data-status hidden><span class="status__dot"></span><span data-status-text></span></p>
-          ${availChipHtml()}
-          ${priceChipHtml()}
-          ${ratingChipHtml()}
+      <div class="hero-grid rise">
+        <div class="hero__intro">
+          <div class="hero__identity">
+            <div class="hero__logo"><img src="${esc(site.logo || "assets/logo.svg")}" alt="${esc(ui("hero.logoAlt"))}" width="96" height="96" loading="eager" fetchpriority="high" decoding="async"></div>
+            <div class="hero__titles">
+              <h1 class="hero__name">${esc(site.name)}</h1>
+              ${tagline ? `<p class="hero__tagline">${esc(tagline)}</p>` : ""}
+            </div>
+          </div>
+          <div class="hero__badges">
+            <p class="status" data-status hidden><span class="status__dot"></span><span data-status-text></span></p>
+            ${availChipHtml()}
+            ${priceChipHtml()}
+            ${ratingChipHtml()}
+          </div>
+          ${heroAddressHtml()}
+          ${
+            socials.length
+              ? `<ul class="socials" aria-label="${esc(ui("hero.socials"))}">${socials
+                  .map(({ network, url }) => {
+                    const [label, color] = NETWORKS[network];
+                    return `<li><a class="social" href="${esc(url)}" target="_blank" rel="noopener" aria-label="${label}" title="${label}" style="--brand:${color}" data-track="social" data-id="${network}" data-label="${label}">${icon(network)}</a></li>`;
+                  })
+                  .join("")}</ul>`
+              : ""
+          }
         </div>
-        ${heroAddressHtml()}
-        ${
-          socials.length
-            ? `<ul class="socials" aria-label="${esc(ui("hero.socials"))}">${socials
-                .map(({ network, url }) => {
-                  const [label, color] = NETWORKS[network];
-                  return `<li><a class="social" href="${esc(url)}" target="_blank" rel="noopener" aria-label="${label}" title="${label}" style="--brand:${color}" data-track="social" data-id="${network}" data-label="${label}">${icon(network)}</a></li>`;
-                })
-                .join("")}</ul>`
-            : ""
-        }
+        ${rightCol ? `<div class="hero__panel">${rightCol}</div>` : ""}
       </div>`;
   }
 
@@ -970,7 +978,9 @@
         </div>`
       : "";
 
-    return section("location", ui("location.title"), `<div class="card">${hours}${place}</div>`);
+    const hoursBlock = hours ? `<div class="location__hours">${hours}</div>` : "";
+    const placeBlock = place ? `<div class="location__place">${place}</div>` : "";
+    return section("location", ui("location.title"), `<div class="card location-grid${hours && place ? " location-grid--split" : ""}">${hoursBlock}${placeBlock}</div>`);
   }
 
   function footerHtml() {
@@ -991,6 +1001,9 @@
   let pcView = "map"; // "map" (за замовчуванням) | "list"
   let selectedPcNum = null;
   let tooltipPcNum = null;
+  let mobileSheetPcNum = null;
+  let mapSwiped = false;
+  const isMobileViewport = () => window.matchMedia("(max-width: 767px)").matches;
 
   // Точна геометрія клубу на сітці 16×10 (x: 0..15, y: 0..9), крок клітинки 60px.
   // Центр клітинки: cx = gx * 60 + 30, cy = gy * 60 + 46 (відступ 16px зверху для підпису рамки над PC 1).
@@ -1180,7 +1193,8 @@
       "M 300 8 H 614 V 182 H 914 V 510 H 614 V 626 H 34 V 200 H 300 Z";
 
     return `
-      <div class="club-map" data-club-map>
+      <div class="club-map${mapSwiped ? " is-scrolled" : ""}" data-club-map>
+        <p class="club-map__hint" aria-hidden="true">${esc(ui("availability.map.scrollHint"))}</p>
         <div class="club-map__viewport" data-map-viewport>
           <svg class="club-map__svg" viewBox="22 0 904 636" role="img" aria-label="${esc(ui("availability.map.label"))}">
             <defs>
@@ -1272,7 +1286,6 @@
           </svg>
         </div>
         <div class="club-map__tooltip" data-map-tooltip hidden role="tooltip"></div>
-        <p class="club-map__hint" aria-hidden="true"><span>${esc(ui("availability.map.scrollHint"))}</span> →</p>
       </div>`;
   }
 
@@ -1357,7 +1370,7 @@
     };
 
     const body = pcView === "list" ? listBody() : clubMapHtml(byNum);
-    const bookBar = `<div data-bookbar-slot>${bookBarHtml(byNum)}</div>`;
+    const bookBar = `<div data-bookbar-slot>${isMobileViewport() ? "" : bookBarHtml(byNum)}</div>`;
 
     // «Обслуговування» (лише від Vade Launcher) у легенді — тільки коли такий ПК зараз є
     const legend = ["free", "busy", "maintenance", "offline"]
@@ -1384,7 +1397,7 @@
 
   const pcsSlotHtml = () => `<div id="pcsSlot">${pcsHtml()}</div>`;
 
-  // Оновлюємо лише бейдж і секцію — решта сторінки (галерея, відкриті FAQ) не перемальовується
+  // Оновлюємо лише бейдж, карту й навігацію — решта сторінки (галерея, відкриті FAQ) не перемальовується
   function renderAvailability() {
     const chip = $("[data-avail]");
     if (chip) chip.outerHTML = availChipHtml();
@@ -1399,9 +1412,71 @@
       if (viewport && prevScroll) viewport.scrollLeft = prevScroll;
       applyUtm(slot);
     }
+    renderPcSheet();
+    renderHeader();
+  }
+
+  function renderPcSheet() {
+    const sheet = $("#pcSheet");
+    if (!sheet) return;
+    if (mobileSheetPcNum == null || !pcData || !isMobileViewport()) {
+      sheet.hidden = true;
+      sheet.classList.remove("is-open");
+      updateActionBar();
+      return;
+    }
+    const pc = pcMapByNum().get(mobileSheetPcNum);
+    if (!pc) {
+      mobileSheetPcNum = null;
+      sheet.hidden = true;
+      sheet.classList.remove("is-open");
+      updateActionBar();
+      return;
+    }
+    const state = pc.state;
+    const pcLabel = ui("availability.map.pcLabel", { n: pc.num });
+    const zLabel = zoneTitle(pc.zone);
+    const stateText = ui(`availability.state.${state}`);
+    const sinceText = state !== "offline" && pc.since ? ui(`availability.since.${state}`, { time: clock(pc.since) }) : "";
+    const href = state === "free" ? bookingUrlForPc(pc) : "";
+    const isTel = /^tel:/i.test(href);
+    const bookText = ui("availability.map.bookPc", { n: pc.num });
+
+    sheet.className = `pc-sheet pc-sheet--${state} is-open`;
+    sheet.innerHTML = `
+      <div class="pc-sheet__head">
+        <div class="pc-sheet__info">
+          <span class="pc-sheet__dot" aria-hidden="true"></span>
+          <div class="pc-sheet__meta">
+            <div class="pc-sheet__title">
+              <b>${esc(pcLabel)}</b>
+              <span class="pc-sheet__badge">${esc(stateText)}</span>
+            </div>
+            <small>${esc([zLabel, sinceText].filter(Boolean).join(" · "))}</small>
+          </div>
+        </div>
+        <button class="icon-btn" type="button" data-pc-sheet-close aria-label="${esc(ui("share.close"))}">${icon("close")}</button>
+      </div>
+      ${
+        href
+          ? `<a class="btn btn--primary pc-sheet__cta" href="${esc(href)}"${targetAttrs(href)} data-track="booking" data-id="booking_pc_${pc.num}" data-label="${esc(ui("availability.map.bookPc", { n: pc.num }, DEFAULT_LANG))}">${icon(isTel ? "phone" : "calendar-check")}${esc(bookText)}</a>`
+          : ""
+      }`;
+    sheet.hidden = false;
+    applyUtm(sheet);
+    updateActionBar();
+  }
+
+  function closePcSheet() {
+    if (mobileSheetPcNum == null) return;
+    mobileSheetPcNum = null;
+    selectedPcNum = null;
+    syncSelectedPcUi();
+    renderPcSheet();
   }
 
   function showMapTooltip(el) {
+    if (isMobileViewport()) return;
     const mapRoot = el?.closest("[data-club-map]");
     if (!mapRoot || !pcData) return;
     const tip = $("[data-map-tooltip]", mapRoot);
@@ -1461,7 +1536,7 @@
     });
     const bookSlot = $("[data-bookbar-slot]", slot);
     if (bookSlot) {
-      bookSlot.innerHTML = bookBarHtml(byNum);
+      bookSlot.innerHTML = isMobileViewport() ? "" : bookBarHtml(byNum);
       applyUtm(bookSlot);
     }
   }
@@ -1470,6 +1545,14 @@
     const num = Number(el.dataset.pcNum);
     const pc = pcMapByNum().get(num);
     if (!pc) return;
+    if (isMobileViewport()) {
+      hideMapTooltip();
+      mobileSheetPcNum = mobileSheetPcNum === num ? null : num;
+      selectedPcNum = mobileSheetPcNum != null && pc.state === "free" ? num : null;
+      syncSelectedPcUi();
+      renderPcSheet();
+      return;
+    }
     if (el.closest("[data-club-map]")) showMapTooltip(el);
     if (pc.state === "free") {
       selectedPcNum = selectedPcNum === num ? null : num;
@@ -1514,13 +1597,14 @@
   function render() {
     $("#hero").innerHTML = heroHtml();
     $("#main").innerHTML =
-      liveHtml() + ctaHtml() + kitHtml() + pcsSlotHtml() + linksHtml() + fullSiteHtml() + galleryHtml() + zonesHtml() + reviewsHtml() + locationHtml() + faqHtml();
+      pcsSlotHtml() + linksHtml() + fullSiteHtml() + galleryHtml() + zonesHtml() + reviewsHtml() + locationHtml() + faqHtml();
     $("#footer").innerHTML = footerHtml();
     $$(".rise").forEach((el, i) => el.style.setProperty("--i", i));
+    renderHeader();
     applyUtm();
 
     // Якщо логотип не завантажився — підставляємо стандартний, щоб не було «битої» картинки
-    $(".hero__logo img").addEventListener(
+    $(".hero__logo img")?.addEventListener(
       "error",
       (e) => {
         e.currentTarget.src = "assets/logo.svg";
@@ -1593,8 +1677,12 @@
       fitHeight();
     };
 
-    // Аналог autoHeight: стрічка завжди висотою з активний слайд (горизонтальне фото — нижча, вертикальне відео — вища)
+    // На смартфонах (карусель) підганяємо висоту стрічки; на планшетах/ПК це адаптивна сітка з aspect-ratio
     const fitHeight = () => {
+      if (window.matchMedia("(min-width: 768px)").matches) {
+        rail.style.height = "";
+        return;
+      }
       const slide = slides[slideIndex];
       if (slide) rail.style.height = slide.offsetHeight + "px";
     };
@@ -1830,6 +1918,7 @@
 
   function onDocumentClick(event) {
     if (tooltipPcNum != null && !event.target.closest("[data-club-map]")) hideMapTooltip();
+    if (mobileSheetPcNum != null && !event.target.closest("#pcSheet") && !event.target.closest("[data-pc-num]")) closePcSheet();
   }
 
   /* ================= Копіювання та сповіщення ================= */
@@ -2040,7 +2129,9 @@
     const bar = $("#actionBar");
     if (!bar || bar.hidden) return;
     const consentOpen = !($("#consent")?.hidden ?? true);
-    const show = !actionBarState.ctaVisible && !actionBarState.actionsVisible && !consentOpen;
+    const pcSheetOpen = !($("#pcSheet")?.hidden ?? true);
+    const navOpen = document.documentElement.classList.contains("nav-open");
+    const show = !actionBarState.ctaVisible && !actionBarState.actionsVisible && !consentOpen && !pcSheetOpen && !navOpen;
     bar.classList.toggle("is-visible", show);
     bar.inert = !show; // прихована панель не ловить фокус клавіатури
     document.body.classList.toggle("actionbar-shown", show);
@@ -2262,6 +2353,169 @@
     jsonLd.textContent = JSON.stringify(data);
   }
 
+  /* ================= Адаптивна шапка та бургер-меню ================= */
+
+  function navItems() {
+    const items = [];
+    if (AV.showGrid !== false && pcData && pcsOnline().length) items.push({ href: "#pcs", label: ui("nav.pcs") });
+    if ((C.gallery || []).length) items.push({ href: "#gallery", label: ui("nav.gallery") });
+    if ((C.zones || []).some(hasPrice) || (C.packages || []).some((p) => p && filled(p.price))) items.push({ href: "#zones", label: ui("nav.zones") });
+    const r = C.reviews || {};
+    if ((r.quotes || []).some((q) => t(q.text)) || r.writeUrl) items.push({ href: "#reviews", label: ui("nav.reviews") });
+    if (hasSchedule || contacts.address) items.push({ href: "#location", label: ui("nav.location") });
+    if (faqItems().length) items.push({ href: "#faq", label: ui("nav.faq") });
+    return items;
+  }
+
+  function renderHeader() {
+    const brand = $("#brandLink");
+    if (brand) {
+      const logoImg = $(".brand__logo", brand);
+      if (logoImg) {
+        logoImg.src = site.logo || "assets/logo.svg";
+        logoImg.alt = ui("hero.logoAlt");
+      }
+      const brandName = $(".brand__name", brand);
+      if (brandName) brandName.textContent = site.name || "VADE";
+    }
+
+    const items = navItems();
+    const nav = $("#siteNav");
+    if (nav) {
+      nav.setAttribute("aria-label", ui("nav.label"));
+      nav.innerHTML = items.map((item) => `<a class="site-nav__link" href="${item.href}">${esc(item.label)}</a>`).join("");
+    }
+
+    const headerBook = $("#headerBook");
+    const b = C.booking || {};
+    if (headerBook) {
+      if (b.url) {
+        headerBook.hidden = false;
+        headerBook.href = b.url;
+        if (isWeb(b.url)) {
+          headerBook.target = "_blank";
+          headerBook.rel = "noopener";
+        } else {
+          headerBook.removeAttribute("target");
+          headerBook.removeAttribute("rel");
+        }
+        headerBook.dataset.track = "booking";
+        headerBook.dataset.id = "booking_header";
+        headerBook.dataset.label = tDef(b.title);
+        const ico = icon(/^tel:/i.test(b.url) ? "phone" : "calendar-check");
+        headerBook.innerHTML = `${ico}<span class="header-cta__full">${esc(t(b.title))}</span><span class="header-cta__short">${esc(ui("nav.bookShort"))}</span>`;
+        applyUtm(headerBook.parentElement);
+      } else {
+        headerBook.hidden = true;
+      }
+    }
+
+    const toggle = $("#navToggle");
+    if (toggle) toggle.setAttribute("aria-label", ui("nav.menu"));
+
+    const drawer = $("#navDrawer");
+    if (drawer) {
+      const langButtons =
+        LANGS.length > 1
+          ? `<div class="nav-drawer__lang" role="group" aria-label="${esc(ui("language"))}">${LANGS.map((l) => {
+              const label = l.label || l.code.toUpperCase();
+              const name = l.name || label;
+              return `<button class="lang-switch__btn" type="button" data-lang="${esc(l.code)}" lang="${esc(l.code)}" aria-pressed="${l.code === lang}" title="${esc(name)}">${esc(label)}</button>`;
+            }).join("")}</div>`
+          : "";
+      drawer.innerHTML = `
+        <div class="nav-drawer__head">
+          <span class="nav-drawer__brand">
+            <img src="${esc(site.logo || "assets/logo.svg")}" alt="" width="28" height="28" decoding="async">
+            <b>${esc(site.name || "VADE")}</b>
+          </span>
+          <button class="icon-btn" type="button" data-nav-close aria-label="${esc(ui("share.close"))}">${icon("close")}</button>
+        </div>
+        <nav class="nav-drawer__links" aria-label="${esc(ui("nav.label"))}">
+          ${items.map((item) => `<a class="nav-drawer__link" href="${item.href}" data-nav-close>${esc(item.label)}${icon("chevron-right")}</a>`).join("")}
+        </nav>
+        ${langButtons}
+        <div class="nav-drawer__actions">
+          ${
+            b.url
+              ? `<a class="btn btn--primary" href="${esc(b.url)}"${targetAttrs(b.url)} data-nav-close data-track="booking" data-id="booking_drawer" data-label="${esc(tDef(b.title))}">${icon(/^tel:/i.test(b.url) ? "phone" : "calendar-check")}${esc(t(b.title))}</a>`
+              : ""
+          }
+          <button class="btn btn--ghost" type="button" data-drawer-share>${icon("share-2")}${esc(ui("share.title"))}</button>
+        </div>`;
+      applyUtm(drawer);
+    }
+  }
+
+  function setNavOpen(open) {
+    const drawer = $("#navDrawer");
+    const backdrop = $("#navBackdrop");
+    const toggle = $("#navToggle");
+    if (!drawer || !backdrop || !toggle) return;
+    document.documentElement.classList.toggle("nav-open", open);
+    document.body.classList.toggle("nav-open", open);
+    toggle.setAttribute("aria-expanded", String(open));
+    drawer.setAttribute("aria-hidden", String(!open));
+    if (open) {
+      drawer.hidden = false;
+      backdrop.hidden = false;
+      requestAnimationFrame(() => {
+        drawer.classList.add("is-open");
+        backdrop.classList.add("is-open");
+      });
+    } else {
+      drawer.classList.remove("is-open");
+      backdrop.classList.remove("is-open");
+      setTimeout(() => {
+        if (!drawer.classList.contains("is-open")) {
+          drawer.hidden = true;
+          backdrop.hidden = true;
+        }
+      }, 240);
+    }
+    updateActionBar();
+  }
+
+  function initNav() {
+    const toggle = $("#navToggle");
+    const drawer = $("#navDrawer");
+    const backdrop = $("#navBackdrop");
+    if (!toggle || !drawer || !backdrop) return;
+    toggle.addEventListener("click", () => setNavOpen(!document.documentElement.classList.contains("nav-open")));
+    backdrop.addEventListener("click", () => setNavOpen(false));
+    drawer.addEventListener("click", (e) => {
+      const langBtn = e.target.closest("[data-lang]");
+      if (langBtn) {
+        setLanguage(langBtn.dataset.lang);
+        return;
+      }
+      if (e.target.closest("[data-drawer-share]")) {
+        setNavOpen(false);
+        $("#shareBtn")?.click();
+        return;
+      }
+      if (e.target.closest("[data-nav-close]")) setNavOpen(false);
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        if (document.documentElement.classList.contains("nav-open")) setNavOpen(false);
+        else if (mobileSheetPcNum != null) closePcSheet();
+      }
+    });
+    window.addEventListener(
+      "resize",
+      () => {
+        if (window.innerWidth >= 1024 && document.documentElement.classList.contains("nav-open")) setNavOpen(false);
+        if (!isMobileViewport() && mobileSheetPcNum != null) {
+          mobileSheetPcNum = null;
+          renderPcSheet();
+          syncSelectedPcUi();
+        }
+      },
+      { passive: true }
+    );
+  }
+
   /* ================= Перемикач мов ================= */
 
   // Кнопки створюються один раз і не перемальовуються, тож фокус клавіатури лишається на місці
@@ -2342,6 +2596,7 @@
   initAnalytics();
   applyTheme();
   initLangSwitch();
+  initNav();
   initShare();
   applyLanguage();
   initConsent();
@@ -2360,6 +2615,9 @@
   document.addEventListener("auxclick", onTrackedClick);
   document.addEventListener("click", onCopyClick);
   document.addEventListener("click", onDocumentClick);
+  $("#pcSheet")?.addEventListener("click", (e) => {
+    if (e.target.closest("[data-pc-sheet-close]")) closePcSheet();
+  });
   const mainEl = $("#main");
   mainEl.addEventListener("click", onMainClick);
   mainEl.addEventListener("pointerover", onMainPointerOver);
@@ -2372,7 +2630,10 @@
     (e) => {
       if (e.target.matches?.("[data-map-viewport]")) {
         hideMapTooltip();
-        e.target.closest("[data-club-map]")?.classList.add("is-scrolled");
+        if (e.target.scrollLeft > 4) {
+          mapSwiped = true;
+          e.target.closest("[data-club-map]")?.classList.add("is-scrolled");
+        }
       }
     },
     true

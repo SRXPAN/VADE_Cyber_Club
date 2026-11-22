@@ -5,7 +5,7 @@
    • Аналітика, карти, Google Таблиця, Imgur і /api/ (вільні ПК) не кешуються.
    Змінили список CORE нижче — збільште VERSION, щоб старий кеш видалився. */
 
-const VERSION = "vade-v7";
+const VERSION = "vade-v8";
 const CORE = [
   "./",
   "index.html",
