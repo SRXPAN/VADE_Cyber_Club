@@ -108,6 +108,7 @@ window.VADE_CONFIG = {
     enabled: true,
     endpoint: "/api/status",
     refreshSeconds: 30,                            // як часто оновлювати, поки сторінка відкрита
+    tvRefreshSeconds: 7,                           // як часто оновлювати сторінку телевізора (/tv)
     showGrid: true                                 // false — лише бейдж у шапці, без секції з усіма ПК
   },
 
@@ -536,6 +537,11 @@ window.VADE_CONFIG = {
         pcLabel:    { pl: "PC #{n}",  en: "PC #{n}",  uk: "ПК #{n}", ru: "ПК #{n}" },
         bookPc:     { pl: "Zarezerwuj PC #{n}", en: "Book PC #{n}", uk: "Забронювати ПК #{n}", ru: "Забронировать ПК #{n}" },
         scrollHint: { pl: "← Przesuń mapę →", en: "← Swipe map →", uk: "← Гортайте карту →", ru: "← Листайте карту →" }
+      },
+      tv: {
+        title:        { pl: "Wolne komputery",   en: "Free PCs",        uk: "Вільні ПК",         ru: "Свободные ПК" },
+        reconnecting: { pl: "Ponowne łączenie…", en: "Reconnecting…",   uk: "Перепідключення…",  ru: "Переподключение…" },
+        loading:      { pl: "Łączenie…",         en: "Connecting…",     uk: "Підключення…",      ru: "Подключение…" }
       }
     },
 

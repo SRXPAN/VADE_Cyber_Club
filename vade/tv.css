@@ -1,0 +1,471 @@
+/* VADE TV Kiosk — повноекранна 16:9 / 4K сторінка живої карти для телевізора в залі */
+
+:root {
+  --bg: #07090e;
+  --text: #f4f5fa;
+  --muted: #a4aab3;
+  --faint: #6f7785;
+  --accent: #2ef2c4;
+  --accent-deep: #0a9e86;
+  --accent-2: #e040fb;
+  --ok: var(--accent);
+  --bad: #ff4d85;
+  --warn: #ffb547;
+  --font-display: "Unbounded", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Manrope", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  cursor: none !important;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+html,
+body {
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font: 600 16px/1.2 var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.tv-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(55vw 50vh at 10% -5%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 70%),
+    radial-gradient(45vw 45vh at 94% 105%, color-mix(in srgb, var(--accent-2) 14%, transparent), transparent 72%),
+    linear-gradient(180deg, #07090e 0%, #090c13 100%);
+}
+
+/* 3-рядкова сітка без скролу: верхня панель · центр (~80% висоти) · нижня смуга */
+.tv {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: 100vw;
+  height: 100vh;
+  padding: clamp(14px, 2.2vh, 42px) clamp(24px, 3vw, 72px);
+  gap: clamp(10px, 1.5vh, 28px);
+}
+
+/* ---------- Верхня панель ---------- */
+
+.tv-top {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: clamp(16px, 2.4vw, 48px);
+  padding: clamp(10px, 1.3vh, 22px) clamp(16px, 1.8vw, 34px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: clamp(14px, 1.6vh, 26px);
+  background: rgba(13, 17, 25, 0.78);
+  box-shadow: 0 18px 44px -24px rgba(0, 0, 0, 0.9);
+}
+
+.tv-brand {
+  display: flex;
+  align-items: center;
+  gap: clamp(12px, 1.4vw, 26px);
+  min-width: 0;
+}
+
+.tv-brand__logo {
+  flex: none;
+  width: clamp(38px, 4.6vh, 84px);
+  height: clamp(38px, 4.6vh, 84px);
+  border-radius: clamp(10px, 1.2vh, 20px);
+  object-fit: cover;
+  box-shadow: 0 0 28px -8px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.tv-brand__text {
+  display: grid;
+  gap: clamp(2px, 0.35vh, 6px);
+  min-width: 0;
+}
+
+.tv-brand__name {
+  color: var(--accent);
+  font: 800 clamp(14px, 1.8vh, 32px) / 1 var(--font-display);
+  letter-spacing: 0.14em;
+}
+
+.tv-brand__title {
+  margin: 0;
+  color: var(--text);
+  font: 800 clamp(18px, 2.6vh, 48px) / 1.05 var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.tv-zones {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(12px, 1.6vw, 32px);
+}
+
+.tv-zpill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: clamp(8px, 0.8vw, 16px);
+  padding: clamp(9px, 1.1vh, 20px) clamp(16px, 1.8vw, 34px);
+  border: 1.5px solid rgba(255, 255, 255, 0.14);
+  border-radius: clamp(12px, 1.3vh, 22px);
+  background: rgba(18, 23, 34, 0.92);
+  font: 700 clamp(18px, 2.5vh, 46px) / 1 var(--font-body);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tv-zpill b {
+  color: var(--text);
+  font-weight: 800;
+}
+
+.tv-zpill span {
+  color: var(--muted);
+  font-family: var(--font-display);
+  font-weight: 800;
+}
+
+.tv-zpill.is-avail {
+  border-color: color-mix(in srgb, var(--ok) 45%, transparent);
+  box-shadow: 0 0 28px -12px rgba(46, 242, 196, 0.45);
+}
+
+.tv-zpill.is-avail span {
+  color: var(--ok);
+}
+
+.tv-zpill--stream {
+  border-color: color-mix(in srgb, var(--accent-2) 48%, transparent);
+}
+
+.tv-zpill--stream b {
+  color: color-mix(in srgb, var(--accent-2) 72%, #fff);
+}
+
+.tv-zpill--stream.is-avail {
+  box-shadow: 0 0 28px -12px rgba(224, 64, 251, 0.55);
+}
+
+.tv-clock {
+  justify-self: end;
+  color: var(--text);
+  font: 800 clamp(26px, 4.1vh, 76px) / 1 var(--font-display);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 24px rgba(46, 242, 196, 0.18);
+}
+
+/* ---------- Центр: SVG-карта на ~80% висоти екрана ---------- */
+
+.tv-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.tv-map__svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* Архітектура карти для телевізора */
+.map-floor {
+  fill: rgba(13, 17, 26, 0.92);
+}
+
+.map-wall {
+  fill: none;
+  stroke: #2e394f;
+  stroke-width: 7.5;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+}
+
+.map-wall--inner {
+  stroke: #2a354b;
+  stroke-width: 6;
+}
+
+.map-zbox__rect {
+  fill: rgba(255, 255, 255, 0.015);
+  stroke: rgba(148, 163, 184, 0.28);
+  stroke-width: 1.1;
+}
+
+.map-zbox__mask {
+  fill: #0d111a;
+}
+
+.map-zbox__label {
+  fill: rgba(164, 175, 192, 0.78);
+  font: 700 10.5px/1 var(--font-body);
+  letter-spacing: 0.06em;
+}
+
+.map-zbox--stream .map-zbox__rect {
+  fill: rgba(224, 64, 251, 0.065);
+  stroke: rgba(224, 64, 251, 0.52);
+}
+
+.map-zbox--stream .map-zbox__label {
+  fill: rgba(224, 64, 251, 0.95);
+}
+
+/* Орієнтири */
+.map-entrance-glow {
+  stroke: var(--accent);
+  stroke-width: 4.5;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 8px var(--accent));
+}
+
+.map-entrance-arrow {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.map-landmark__ico {
+  fill: none;
+  stroke: rgba(203, 213, 225, 0.72);
+  stroke-width: 2.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.map-extinguisher {
+  fill: rgba(255, 77, 133, 0.16);
+  stroke: rgba(255, 112, 136, 0.78);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.map-landmark__label {
+  fill: rgba(164, 175, 192, 0.82);
+  font: 700 10.5px/1 var(--font-body);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.map-landmark__label--accent {
+  fill: var(--accent);
+}
+
+/* Неактивні слоти (8, 9, 10, 11, 20, 21, 22) */
+.map-pc-inactive__screen {
+  fill: rgba(22, 27, 38, 0.58);
+  stroke: rgba(100, 116, 139, 0.34);
+  stroke-width: 1.5;
+}
+
+.map-pc-inactive__num {
+  fill: rgba(148, 163, 184, 0.42);
+  font: 700 16px/1 var(--font-body);
+  font-variant-numeric: tabular-nums;
+}
+
+.map-pc-inactive__neck {
+  fill: rgba(100, 116, 139, 0.24);
+}
+
+.map-pc-inactive__led {
+  fill: rgba(100, 116, 139, 0.28);
+}
+
+/* Станції ПК для перегляду з відстані */
+.map-pc {
+  --pc-c: #586174;
+  --pc-fill: rgba(24, 29, 40, 0.76);
+}
+
+.map-pc__screen {
+  fill: var(--pc-fill);
+  stroke: var(--pc-c);
+  stroke-width: 2.3;
+}
+
+.map-pc__glint {
+  stroke: rgba(255, 255, 255, 0.18);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+
+.map-pc__num {
+  fill: #ffffff;
+  font: 800 18.5px/1 var(--font-body);
+  font-variant-numeric: tabular-nums;
+}
+
+.map-pc__neck {
+  fill: rgba(255, 255, 255, 0.26);
+}
+
+.map-pc__led {
+  fill: var(--pc-c);
+}
+
+.map-pc--free {
+  --pc-c: #2ef2c4;
+  --pc-fill: rgba(46, 242, 196, 0.22);
+}
+
+.map-pc--free .map-pc__screen {
+  filter: drop-shadow(0 0 8px rgba(46, 242, 196, 0.5));
+}
+
+.map-pc--free .map-pc__led {
+  filter: drop-shadow(0 0 6px rgba(46, 242, 196, 0.95));
+}
+
+.map-pc--busy {
+  --pc-c: #ff4d85;
+  --pc-fill: rgba(255, 77, 133, 0.2);
+}
+
+.map-pc--busy .map-pc__screen {
+  filter: drop-shadow(0 0 6px rgba(255, 77, 133, 0.34));
+}
+
+.map-pc--maintenance,
+.map-pc--offline {
+  --pc-c: #555e70;
+  --pc-fill: rgba(22, 26, 36, 0.72);
+  opacity: 0.62;
+}
+
+.map-pc--maintenance .map-pc__num,
+.map-pc--offline .map-pc__num {
+  fill: var(--muted);
+}
+
+/* ---------- Нижня смуга ---------- */
+
+.tv-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: clamp(16px, 2vw, 40px);
+  padding: clamp(8px, 1vh, 18px) clamp(16px, 1.8vw, 34px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: clamp(12px, 1.3vh, 22px);
+  background: rgba(13, 17, 25, 0.72);
+}
+
+.tv-legend {
+  display: flex;
+  align-items: center;
+  gap: clamp(18px, 2.5vw, 52px);
+}
+
+.tv-key {
+  --k: var(--faint);
+  display: inline-flex;
+  align-items: center;
+  gap: clamp(8px, 0.9vw, 16px);
+  color: var(--text);
+  font: 700 clamp(15px, 2vh, 36px) / 1 var(--font-body);
+  white-space: nowrap;
+}
+
+.tv-key i {
+  width: clamp(12px, 1.4vh, 26px);
+  height: clamp(12px, 1.4vh, 26px);
+  border-radius: 50%;
+  background: var(--k);
+  box-shadow: 0 0 14px var(--k);
+}
+
+.tv-key--free {
+  --k: var(--ok);
+}
+
+.tv-key--busy {
+  --k: var(--bad);
+}
+
+.tv-key--off {
+  --k: #5f687a;
+}
+
+.tv-key--off i {
+  box-shadow: none;
+}
+
+.tv-meta {
+  display: flex;
+  align-items: center;
+  gap: clamp(12px, 1.4vw, 28px);
+}
+
+.tv-reconnect {
+  display: inline-flex;
+  align-items: center;
+  gap: clamp(7px, 0.7vw, 14px);
+  padding: clamp(5px, 0.7vh, 12px) clamp(12px, 1.2vw, 24px);
+  border: 1px solid rgba(255, 167, 38, 0.55);
+  border-radius: 999px;
+  background: rgba(255, 152, 0, 0.16);
+  color: #ffb74d;
+  font: 700 clamp(13px, 1.5vh, 26px) / 1 var(--font-body);
+  white-space: nowrap;
+}
+
+.tv-reconnect i {
+  width: clamp(8px, 0.9vh, 16px);
+  height: clamp(8px, 0.9vh, 16px);
+  border-radius: 50%;
+  background: #ff9800;
+  box-shadow: 0 0 10px #ff9800;
+  animation: tv-pulse 1.3s ease-in-out infinite;
+}
+
+@keyframes tv-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.8);
+  }
+}
+
+.tv-updated {
+  color: var(--muted);
+  font: 600 clamp(13px, 1.55vh, 28px) / 1 var(--font-body);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}

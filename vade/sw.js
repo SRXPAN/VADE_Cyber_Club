@@ -5,14 +5,18 @@
    • Аналітика, карти, Google Таблиця, Imgur і /api/ (вільні ПК) не кешуються.
    Змінили список CORE нижче — збільште VERSION, щоб старий кеш видалився. */
 
-const VERSION = "vade-v8";
+const VERSION = "vade-v9";
 const CORE = [
   "./",
   "index.html",
   "styles.css",
   "config.js",
+  "club-map.js",
   "app.js",
   "arena.js",
+  "tv.html",
+  "tv.css",
+  "tv.js",
   "manifest.json",
   "assets/logo.svg",
   "assets/favicon.svg",
@@ -87,9 +91,12 @@ async function networkFirst(request, key) {
     if (cacheable(response)) cache.put(key, response.clone());
     return response;
   } catch {
+    const isTv = /\/tv(?:\.html)?$/i.test(new URL(request.url).pathname);
     const cached =
       (await cache.match(key, { ignoreSearch: true })) ||
-      (request.mode === "navigate" ? (await cache.match("./")) || (await cache.match("index.html")) : undefined);
+      (request.mode === "navigate"
+        ? (isTv ? await cache.match("tv.html") : null) || (await cache.match("./")) || (await cache.match("index.html"))
+        : undefined);
     if (cached) return cached;
     return new Response("Offline", { status: 503, headers: { "Content-Type": "text/plain; charset=utf-8" } });
   }
