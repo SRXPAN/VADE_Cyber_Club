@@ -1,9 +1,10 @@
-/* VADE TV Kiosk — жива карта залу для екрана в клубі (опитування 5–10с, WakeLock, 06:00 reload) */
+/* VADE TV Kiosk — жива карта залу 60% + промо-банери 16:9 і QR-картки 40% */
 (() => {
   "use strict";
 
   const C = window.VADE_CONFIG || {};
   const M = window.VADE_CLUB_MAP;
+  const QR = window.VADE_QR;
   if (!M) {
     console.error("VADE TV: не завантажився club-map.js");
     return;
@@ -20,20 +21,20 @@
   const ESC = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
   const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (ch) => ESC[ch]);
   const isDict = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+  const SAFE_DATA_IMAGE_RE = /^data:image\/(?:webp|jpeg|jpg|png|svg\+xml);base64,[A-Za-z0-9+/=]+$/i;
+  const SAFE_LOCAL_ASSET_RE = /^\/tv-assets\/[a-f0-9]{16}\.(?:webp|jpg|jpeg|png|svg)$/i;
+  const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
 
-  function resolveLang() {
-    const raw = new URLSearchParams(location.search).get("lang");
-    if (typeof raw === "string" && raw.trim()) {
-      const base = raw.trim().toLowerCase().split(/[-_]/)[0];
-      const code = LANG_ALIASES[base] || base;
-      if (CODES.includes(code)) return code;
-    }
-    return DEFAULT_LANG;
+  function normalizeLangCode(raw) {
+    if (typeof raw !== "string" || !raw.trim()) return null;
+    const base = raw.trim().toLowerCase().split(/[-_]/)[0];
+    const code = LANG_ALIASES[base] || base;
+    return CODES.includes(code) ? code : null;
   }
 
-  const lang = resolveLang();
-  const langInfo = LANGS.find((l) => l.code === lang) || { code: lang, locale: "pl-PL" };
-  document.documentElement.lang = lang;
+  const urlForcedLang = normalizeLangCode(new URLSearchParams(location.search).get("lang"));
+  let lang = urlForcedLang || DEFAULT_LANG;
+  const getLangInfo = () => LANGS.find((l) => l.code === lang) || { code: lang, locale: "pl-PL" };
 
   function tr(value) {
     if (!isDict(value)) return value ?? "";
@@ -59,7 +60,7 @@
   if (theme.accentDeep) rootStyle.setProperty("--accent-deep", theme.accentDeep);
   if (theme.accent2) rootStyle.setProperty("--accent-2", theme.accent2);
 
-  // Початкові підписи інтерфейсу
+  const rootEl = document.getElementById("tvRoot");
   const logoEl = document.getElementById("tvLogo");
   const brandEl = document.getElementById("tvBrand");
   const titleEl = document.getElementById("tvTitle");
@@ -70,35 +71,46 @@
   const reconnectEl = document.getElementById("tvReconnect");
   const reconnectTextEl = document.getElementById("tvReconnectText");
   const updatedEl = document.getElementById("tvUpdated");
+  const rightEl = document.getElementById("tvRight");
+  const bannersEl = document.getElementById("tvBanners");
+  const qrRowEl = document.getElementById("tvQrRow");
 
-  if (logoEl && site.logo) logoEl.src = site.logo;
-  if (brandEl) brandEl.textContent = site.name || "VADE";
-  if (titleEl) titleEl.textContent = ui("availability.tv.title");
-  if (reconnectTextEl) reconnectTextEl.textContent = ui("availability.tv.reconnecting");
-  document.title = `${site.fullName || site.name || "VADE"} — ${ui("availability.tv.title")}`;
+  let mapLabels = {};
+  let lastData = null;
 
-  if (legendEl) {
-    legendEl.innerHTML = [
-      { cls: "free", label: ui("availability.state.free") },
-      { cls: "busy", label: ui("availability.state.busy") },
-      { cls: "off", label: ui("availability.state.offline") },
-    ]
-      .map((item) => `<span class="tv-key tv-key--${item.cls}"><i aria-hidden="true"></i><span>${esc(item.label)}</span></span>`)
-      .join("");
+  function applyStaticLocaleTexts() {
+    document.documentElement.lang = lang;
+    if (logoEl && site.logo) logoEl.src = site.logo;
+    if (brandEl) brandEl.textContent = site.name || "VADE";
+    if (titleEl) titleEl.textContent = ui("availability.tv.title");
+    if (reconnectTextEl) reconnectTextEl.textContent = ui("availability.tv.reconnecting");
+    document.title = `${site.fullName || site.name || "VADE"} — ${ui("availability.tv.title")}`;
+
+    if (legendEl) {
+      legendEl.innerHTML = [
+        { cls: "free", label: ui("availability.state.free") },
+        { cls: "busy", label: ui("availability.state.busy") },
+        { cls: "maint", label: ui("availability.state.maintenance") },
+        { cls: "off", label: ui("availability.state.offline") },
+      ]
+        .map((item) => `<span class="tv-key tv-key--${item.cls}"><i aria-hidden="true"></i><span>${esc(item.label)}</span></span>`)
+        .join("");
+    }
+
+    mapLabels = {
+      entrance: ui("availability.map.entrance"),
+      admin: ui("availability.map.admin"),
+      wc: ui("availability.map.wc"),
+      regular: ui("availability.map.regular"),
+      stream: ui("availability.map.stream"),
+      mapAria: ui("availability.map.label"),
+    };
   }
 
-  const mapLabels = {
-    entrance: ui("availability.map.entrance"),
-    admin: ui("availability.map.admin"),
-    wc: ui("availability.map.wc"),
-    regular: ui("availability.map.regular"),
-    stream: ui("availability.map.stream"),
-    mapAria: ui("availability.map.label"),
-  };
-
   function formatClubTime(date) {
+    const info = getLangInfo();
     try {
-      return new Intl.DateTimeFormat(langInfo.locale || lang, {
+      return new Intl.DateTimeFormat(info.locale || lang, {
         hour: "2-digit",
         minute: "2-digit",
         hourCycle: "h23",
@@ -131,8 +143,6 @@
     if (clockEl) clockEl.textContent = formatClubTime(new Date());
   }
 
-  let lastData = null;
-
   function renderZones(data) {
     if (!zonesEl) return;
     if (!data || !Array.isArray(data.pcs) || !data.pcs.length) {
@@ -140,10 +150,7 @@
         { key: "Standard", total: 20, stream: false },
         { key: "Streamer", total: 2, stream: true },
       ]
-        .map(
-          (z) =>
-            `<span class="tv-zpill${z.stream ? " tv-zpill--stream" : ""}"><b>${esc(zoneTitle(z.key))}:</b> <span>—/${z.total}</span></span>`
-        )
+        .map((z) => `<span class="tv-zpill${z.stream ? " tv-zpill--stream" : ""}"><b>${esc(zoneTitle(z.key))}:</b> <span>—/${z.total}</span></span>`)
         .join("");
       return;
     }
@@ -185,15 +192,184 @@
     updatedEl.textContent = ui("availability.updated", { time: formatClubTime(new Date(data.updated * 1000)) });
   }
 
-  function renderAll(data) {
+  function renderLeftAll(data) {
     renderZones(data);
     renderMap(data);
     renderUpdated(data);
   }
 
-  // Початковий рендер одразу при відкритті, не чекаючи першого API-відгуку
+  // ---------- Права панель: промо-банери 16:9 + ряд QR-карток ----------
+  let lastConfigSig = "";
+  let slideTimer = null;
+  let activeSlides = [];
+  let activeDefaultSec = 8;
+  let currentSlideIdx = 0;
+
+  function safeImgSrc(src) {
+    if (typeof src !== "string") return "";
+    const trimmed = src.trim();
+    return SAFE_DATA_IMAGE_RE.test(trimmed) || SAFE_LOCAL_ASSET_RE.test(trimmed) ? trimmed : "";
+  }
+
+  function showSlideAt(idx) {
+    if (slideTimer) {
+      clearTimeout(slideTimer);
+      slideTimer = null;
+    }
+    if (!bannersEl || !activeSlides.length) return;
+    currentSlideIdx = ((idx % activeSlides.length) + activeSlides.length) % activeSlides.length;
+
+    const slideNodes = bannersEl.querySelectorAll(".tv-slide");
+    slideNodes.forEach((el, i) => el.classList.toggle("is-active", i === currentSlideIdx));
+    const dotNodes = bannersEl.querySelectorAll(".tv-slide__dot");
+    dotNodes.forEach((el, i) => el.classList.toggle("is-active", i === currentSlideIdx));
+
+    const current = activeSlides[currentSlideIdx];
+    const sec = Math.min(30, Math.max(5, Number(current?.durationSec) || activeDefaultSec));
+    const bar = bannersEl.querySelector(".tv-slide__bar");
+    if (bar) {
+      bar.style.transition = "none";
+      bar.style.width = "0%";
+      void bar.offsetWidth;
+      if (activeSlides.length > 1) {
+        bar.style.transition = `width ${sec}s linear`;
+        bar.style.width = "100%";
+      } else {
+        bar.style.width = "100%";
+      }
+    }
+    if (activeSlides.length > 1) {
+      slideTimer = setTimeout(() => showSlideAt(currentSlideIdx + 1), sec * 1000);
+    }
+  }
+
+  function renderTvRight(cfg) {
+    if (!rootEl || !rightEl || !bannersEl || !qrRowEl) return;
+    if (slideTimer) {
+      clearTimeout(slideTimer);
+      slideTimer = null;
+    }
+
+    const slides = (Array.isArray(cfg?.slides) ? cfg.slides : []).filter((s) => s && s.enabled && safeImgSrc(s.imageDataUrl));
+    const cards = (Array.isArray(cfg?.qrCards) ? cfg.qrCards : []).filter((c) => c && c.enabled).slice(0, 4);
+
+    if (!slides.length && !cards.length) {
+      rightEl.hidden = true;
+      rootEl.classList.add("tv--map-only");
+      bannersEl.innerHTML = "";
+      qrRowEl.innerHTML = "";
+      return;
+    }
+
+    rootEl.classList.remove("tv--map-only");
+    rightEl.hidden = false;
+
+    activeSlides = slides;
+    activeDefaultSec = Math.min(30, Math.max(5, Number(cfg?.defaultSlideDurationSec) || 8));
+
+    if (slides.length) {
+      const slidesHtml = slides
+        .map((s, i) => {
+          const imgSrc = safeImgSrc(s.imageDataUrl);
+          const withText = s.mode === "with_text" && (s.title || s.subtitle);
+          return `
+            <div class="tv-slide${i === 0 ? " is-active" : ""}">
+              <img class="tv-slide__img" src="${esc(imgSrc)}" alt="${esc(s.title || "VADE")}">
+              ${
+                withText
+                  ? `<div class="tv-slide__scrim">
+                      ${s.title ? `<h2 class="tv-slide__title">${esc(s.title)}</h2>` : ""}
+                      ${s.subtitle ? `<p class="tv-slide__sub">${esc(s.subtitle)}</p>` : ""}
+                    </div>`
+                  : ""
+              }
+            </div>`;
+        })
+        .join("");
+
+      const dotsHtml =
+        slides.length > 1
+          ? `<div class="tv-slide__dots">${slides.map((_, i) => `<span class="tv-slide__dot${i === 0 ? " is-active" : ""}"></span>`).join("")}</div>`
+          : "";
+
+      bannersEl.innerHTML = `${slidesHtml}${dotsHtml}<div class="tv-slide__bar-track"><div class="tv-slide__bar"></div></div>`;
+      showSlideAt(0);
+    } else {
+      bannersEl.innerHTML = `
+        <div class="tv-promo-fallback">
+          <img src="${esc(site.logo || "assets/logo.svg")}" alt="">
+          <div class="tv-promo-fallback__name">${esc(site.name || "VADE")}</div>
+          <div class="tv-promo-fallback__tag">${esc(t(site.tagline))}</div>
+        </div>`;
+    }
+
+    if (cards.length) {
+      qrRowEl.hidden = false;
+      qrRowEl.style.setProperty("--qr-cols", String(cards.length));
+      qrRowEl.innerHTML = cards
+        .map((card) => {
+          const bgImg = card.bgType === "image" ? safeImgSrc(card.bgImageDataUrl) : "";
+          const bgColor = HEX_COLOR_RE.test(String(card.bgColor || "").trim()) ? card.bgColor.trim() : "#161b26";
+          const cardStyle = bgImg
+            ? `background-image:url('${esc(bgImg)}');background-color:${esc(bgColor)}`
+            : `background:${esc(bgColor)}`;
+
+          let qrSrc = "";
+          if (card.qrSource === "upload") {
+            qrSrc = safeImgSrc(card.qrImageDataUrl);
+          } else if (card.qrText && QR) {
+            try {
+              qrSrc = QR.toDataUrl(String(card.qrText));
+            } catch {
+              qrSrc = "";
+            }
+          }
+
+          return `
+            <div class="tv-qr-card${bgImg ? " tv-qr-card--has-bg" : ""}" style="${cardStyle}">
+              <div class="tv-qr-card__box">
+                ${qrSrc ? `<img src="${esc(qrSrc)}" alt="${esc(card.label || "QR")}">` : ""}
+              </div>
+              <div class="tv-qr-card__text">
+                <div class="tv-qr-card__label">${esc(card.label || "")}</div>
+                ${card.sublabel ? `<div class="tv-qr-card__sub">${esc(card.sublabel)}</div>` : ""}
+              </div>
+            </div>`;
+        })
+        .join("");
+    } else {
+      qrRowEl.hidden = true;
+      qrRowEl.innerHTML = "";
+    }
+  }
+
+  function applyTvConfig(cfg) {
+    if (!cfg || typeof cfg !== "object") return;
+    if (!urlForcedLang && cfg.lang) {
+      const nextLang = normalizeLangCode(cfg.lang);
+      if (nextLang && nextLang !== lang) {
+        lang = nextLang;
+        applyStaticLocaleTexts();
+        updateClock();
+        renderLeftAll(lastData);
+      }
+    }
+    const sig = JSON.stringify({
+      updatedAt: cfg.updatedAt,
+      lang: cfg.lang,
+      dur: cfg.defaultSlideDurationSec,
+      slides: (cfg.slides || []).map((s) => `${s.id}:${s.enabled}:${s.mode}:${s.title}:${s.subtitle}:${s.durationSec}:${(s.imageDataUrl || "").length}`),
+      cards: (cfg.qrCards || []).map((c) => `${c.id}:${c.enabled}:${c.label}:${c.sublabel}:${c.qrSource}:${c.qrText}:${c.bgType}:${c.bgColor}:${(c.qrImageDataUrl || "").length}:${(c.bgImageDataUrl || "").length}`),
+    });
+    if (sig === lastConfigSig) return;
+    lastConfigSig = sig;
+    renderTvRight(cfg);
+  }
+
+  // Початковий рендер одразу при відкритті
+  applyStaticLocaleTexts();
   updateClock();
-  renderAll(null);
+  renderLeftAll(null);
 
   const endpoint = AV.endpoint || "/api/status";
   const rawSec = Number(AV.tvRefreshSeconds);
@@ -212,10 +388,9 @@
       if (!data || !Array.isArray(data.pcs)) throw new Error("bad payload");
       lastData = data;
       if (reconnectEl) reconnectEl.hidden = true;
-      renderAll(lastData);
+      renderLeftAll(lastData);
     } catch (err) {
       if (C.debug) console.warn("[VADE TV] /api/status:", err);
-      // При обриві мережі карта й останні статуси залишаються на екрані
       if (reconnectEl) reconnectEl.hidden = false;
     } finally {
       clearTimeout(timer);
@@ -223,11 +398,24 @@
     }
   }
 
+  async function pollTvConfig() {
+    try {
+      const res = await fetch("/api/tv-config", { cache: "no-store", headers: { Accept: "application/json" } });
+      if (!res.ok) return;
+      const cfg = await res.json();
+      applyTvConfig(cfg);
+    } catch (err) {
+      if (C.debug) console.warn("[VADE TV] /api/tv-config:", err);
+    }
+  }
+
   pollStatus();
+  pollTvConfig();
   setInterval(pollStatus, pollMs);
+  setInterval(pollTvConfig, 60000);
   setInterval(updateClock, 5000);
 
-  // Щоденне тихе перезавантаження о 06:00 за часом клубу (проти витоків пам'яті 24/7)
+  // Щоденне тихе перезавантаження о 06:00 за часом клубу
   const bootMs = Date.now();
   setInterval(() => {
     if (Date.now() - bootMs < 120000) return;
@@ -235,7 +423,7 @@
     if (hour === 6 && minute === 0) location.reload();
   }, 20000);
 
-  // Wake Lock API: не даємо екрану телевізора заснути
+  // Wake Lock API
   let wakeLock = null;
   async function acquireWakeLock() {
     if (!("wakeLock" in navigator) || document.hidden || wakeLock) return;
@@ -254,6 +442,7 @@
     if (!document.hidden) {
       acquireWakeLock();
       pollStatus();
+      pollTvConfig();
     }
   });
 })();

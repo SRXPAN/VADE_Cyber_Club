@@ -17,38 +17,46 @@
   <link rel="stylesheet" href="tv.css">
 
   <script src="config.js" defer></script>
+  <script src="qr.js" defer></script>
   <script src="club-map.js" defer></script>
   <script src="tv.js" defer></script>
 </head>
 <body>
   <div class="tv-bg" aria-hidden="true"></div>
-  <div class="tv" id="tvRoot">
-    <header class="tv-top">
-      <div class="tv-brand">
-        <img class="tv-brand__logo" id="tvLogo" src="assets/logo.svg" alt="" width="54" height="54" decoding="async">
-        <div class="tv-brand__text">
-          <span class="tv-brand__name" id="tvBrand">VADE</span>
-          <h1 class="tv-brand__title" id="tvTitle">WOLNE KOMPUTERY</h1>
+  <div class="tv tv--map-only" id="tvRoot">
+    <div class="tv-left">
+      <header class="tv-top">
+        <div class="tv-brand">
+          <img class="tv-brand__logo" id="tvLogo" src="assets/logo.svg" alt="" width="54" height="54" decoding="async">
+          <div class="tv-brand__text">
+            <span class="tv-brand__name" id="tvBrand">VADE</span>
+            <h1 class="tv-brand__title" id="tvTitle">WOLNE KOMPUTERY</h1>
+          </div>
         </div>
-      </div>
 
-      <div class="tv-zones" id="tvZones"></div>
+        <div class="tv-zones" id="tvZones"></div>
 
-      <div class="tv-clock" id="tvClock" aria-live="off">--:--</div>
-    </header>
+        <div class="tv-clock" id="tvClock" aria-live="off">--:--</div>
+      </header>
 
-    <main class="tv-stage" id="tvMap" aria-live="polite"></main>
+      <main class="tv-stage" id="tvMap" aria-live="polite"></main>
 
-    <footer class="tv-bottom">
-      <div class="tv-legend" id="tvLegend"></div>
-      <div class="tv-meta">
-        <span class="tv-reconnect" id="tvReconnect" hidden>
-          <i aria-hidden="true"></i>
-          <span id="tvReconnectText">Reconnecting…</span>
-        </span>
-        <span class="tv-updated" id="tvUpdated"></span>
-      </div>
-    </footer>
+      <footer class="tv-bottom">
+        <div class="tv-legend" id="tvLegend"></div>
+        <div class="tv-meta">
+          <span class="tv-reconnect" id="tvReconnect" hidden>
+            <i aria-hidden="true"></i>
+            <span id="tvReconnectText">Reconnecting…</span>
+          </span>
+          <span class="tv-updated" id="tvUpdated"></span>
+        </div>
+      </footer>
+    </div>
+
+    <aside class="tv-right" id="tvRight" hidden>
+      <section class="tv-banners" id="tvBanners" aria-live="off"></section>
+      <section class="tv-qr-row" id="tvQrRow"></section>
+    </aside>
   </div>
 </body>
 </html>
